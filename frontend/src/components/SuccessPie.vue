@@ -3,6 +3,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-ignore
 import * as d3 from "d3";
 import { ref, onMounted, watch } from "vue";
 
@@ -22,23 +23,23 @@ const drawChart = () => {
   ];
 
   const radius = Math.min(width, height) / 2;
-  const svg = d3
-    .select(svgRef.value)
-    .attr("width", width)
-    .attr("height", height)
-    .selectAll("*")
-    .remove();
+  // const svg = d3
+  //   .select(svgRef.value)
+  //   .attr("width", width)
+  //   .attr("height", height)
+  //   .selectAll("*")
+  //   .remove();
 
   const g = d3
     .select(svgRef.value)
     .append("g")
     .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
-  const pie = d3.pie<any>().value((d) => d.value);
+  const pie = d3.pie<any>().value((d: any) => d.value);
   const arc = d3.arc<any>().innerRadius(0).outerRadius(radius);
   const color = d3
     .scaleOrdinal()
-    .domain(data.map((d) => d.label))
+    .domain(data.map((d: any) => d.label))
     .range(["#4caf50", "#f44336"]);
 
   const arcs = g.selectAll("arc").data(pie(data)).enter().append("g");
@@ -46,14 +47,14 @@ const drawChart = () => {
   arcs
     .append("path")
     .attr("d", arc)
-    .attr("fill", (d) => color(d.data.label) as string);
+    .attr("fill", (d: any) => color(d.data.label) as string);
 
   arcs
     .append("text")
-    .attr("transform", (d) => `translate(${arc.centroid(d)})`)
+    .attr("transform", (d: any) => `translate(${arc.centroid(d)})`)
     .attr("text-anchor", "middle")
     .attr("font-size", "14px")
-    .text((d) => `${d.data.label}: ${d.data.value}`);
+    .text((d: any) => `${d.data.label}: ${d.data.value}`);
 };
 
 onMounted(drawChart);

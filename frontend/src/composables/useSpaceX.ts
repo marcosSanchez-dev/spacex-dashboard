@@ -7,7 +7,7 @@ export function useSpaceX() {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  const fetchData = async (endpoint: string) => {
+  const fetchData = async <T = any>(endpoint: string): Promise<T | null> => {
     isLoading.value = true;
     error.value = null;
     try {

@@ -3,6 +3,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-ignore
 import * as d3 from "d3";
 import { ref, onMounted, watch } from "vue";
 
@@ -28,13 +29,13 @@ const drawChart = () => {
 
   const x = d3
     .scaleBand()
-    .domain(props.data.map((d) => d.name))
+    .domain(props.data.map((d: any) => d.name))
     .range([0, innerWidth])
     .padding(0.1);
 
   const y = d3
     .scaleLinear()
-    .domain([0, d3.max(props.data, (d) => d.mass) || 0])
+    .domain([0, d3.max(props.data, (d: any) => d.mass) || 0])
     .range([innerHeight, 0]);
 
   g.selectAll(".bar")
@@ -42,10 +43,10 @@ const drawChart = () => {
     .enter()
     .append("rect")
     .attr("class", "bar")
-    .attr("x", (d) => x(d.name)!)
-    .attr("y", (d) => y(d.mass))
+    .attr("x", (d: any) => x(d.name)!)
+    .attr("y", (d: any) => y(d.mass))
     .attr("width", x.bandwidth())
-    .attr("height", (d) => innerHeight - y(d.mass))
+    .attr("height", (d: any) => innerHeight - y(d.mass))
     .attr("fill", "#2196f3");
 
   g.append("g")

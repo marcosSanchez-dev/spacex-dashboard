@@ -15,10 +15,18 @@
 import { ref, onMounted } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 
-const sats = ref([]);
+interface Starlink {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  altitude_km: number;
+}
+
+const sats = ref<Starlink[]>([]);
 const { fetchData } = useSpaceX();
 
 onMounted(async () => {
-  sats.value = (await fetchData("/api/starlink")) || [];
+  sats.value = (await fetchData<Starlink[]>("/api/starlink")) || [];
 });
 </script>
