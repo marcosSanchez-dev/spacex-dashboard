@@ -1,19 +1,14 @@
 <template>
   <div>
     <h1>Rockets</h1>
-    <ul v-if="rockets.length">
-      <li v-for="rocket in rockets" :key="rocket.name">
-        <strong>{{ rocket.name }}</strong> - {{ rocket.height }}m -
-        {{ rocket.mass }}kg - ${{ rocket.cost }}
-      </li>
-    </ul>
-    <p v-else>Cargando cohetes...</p>
+    <RocketBarChart :data="formattedRockets" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
+import RocketBarChart from "../components/RocketBarChart.vue";
 
 const rockets = ref([]);
 const { fetchData } = useSpaceX();
@@ -21,4 +16,11 @@ const { fetchData } = useSpaceX();
 onMounted(async () => {
   rockets.value = (await fetchData("/api/rockets")) || [];
 });
+
+const formattedRockets = computed(() =>
+  rockets.value.map((r: any) => ({
+    name: r.name,
+    mass: r.mass,
+  }))
+);
 </script>
