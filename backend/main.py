@@ -1,7 +1,9 @@
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from api import rockets  # 👈 Importamos el router
 
 app = FastAPI()
+
+app.include_router(rockets.router)  # 👈 Lo agregamos a la app
 
 @app.get("/")
 async def root():
