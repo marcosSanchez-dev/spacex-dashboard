@@ -1,14 +1,20 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 import requests
 
 router = APIRouter()
 
 @router.get("/api/launches")
-def get_launches():
+def get_launches(year: int = Query(default=None)):
     try:
         response = requests.get("https://api.spacexdata.com/v4/launches")
         response.raise_for_status()
         launches = response.json()
+
+        if year:
+            launches = [
+                l for l in launches
+                if l.get("date_utc", "").startswith(str(year))
+            ]
 
         total = len(launches)
         successful = sum(1 for l in launches if l.get("success") is True)
