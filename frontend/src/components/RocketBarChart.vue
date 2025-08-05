@@ -23,6 +23,20 @@ const drawChart = () => {
   const svg = d3.select(svgRef.value);
   svg.selectAll("*").remove(); // limpia
 
+  // ⚡ Gradiente
+  const defs = svg.append("defs");
+  const gradient = defs
+    .append("linearGradient")
+    .attr("id", "barGradient")
+    .attr("x1", "0%")
+    .attr("y1", "0%")
+    .attr("x2", "0%")
+    .attr("y2", "100%");
+
+  gradient.append("stop").attr("offset", "0%").attr("stop-color", "#00f2ff"); // color eléctrico
+
+  gradient.append("stop").attr("offset", "100%").attr("stop-color", "#005577"); // más oscuro
+
   const g = svg
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
@@ -38,23 +52,39 @@ const drawChart = () => {
     .domain([0, d3.max(props.data, (d: any) => d.mass) || 0])
     .range([innerHeight, 0]);
 
+  // ✨ Barras animadas
   g.selectAll(".bar")
     .data(props.data)
     .enter()
     .append("rect")
     .attr("class", "bar")
     .attr("x", (d: any) => x(d.name)!)
-    .attr("y", (d: any) => y(d.mass))
+    .attr("y", innerHeight)
     .attr("width", x.bandwidth())
-    .attr("height", (d: any) => innerHeight - y(d.mass))
-    .attr("fill", "#2196f3");
+    .attr("height", 0)
+    .attr("fill", "url(#barGradient)")
+    .transition()
+    .duration(800)
+    .attr("y", (d: any) => y(d.mass))
+    .attr("height", (d: any) => innerHeight - y(d.mass));
 
+  // Ejes
   g.append("g")
     .attr("transform", `translate(0,${innerHeight})`)
     .call(d3.axisBottom(x));
 
   g.append("g").call(d3.axisLeft(y));
 };
+
 onMounted(drawChart);
 watch(() => props.data, drawChart);
 </script>
+
+<style scoped>
+text {
+  fill: #00ffff;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 12px;
+  text-shadow: 0 0 4px #00ffff;
+}
+</style>

@@ -1,7 +1,8 @@
 <template>
   <div>
     <h1>Rockets</h1>
-
+    <p v-if="isLoading" class="glow">🔄 Cargando datos...</p>
+    <p v-if="error" class="glow" style="color: red">{{ error }}</p>
     <input
       v-model="filter"
       type="text"
@@ -20,7 +21,7 @@ import RocketBarChart from "../components/RocketBarChart.vue";
 
 const rockets = ref<any[]>([]);
 const filter = ref("");
-const { fetchData } = useSpaceX();
+const { fetchData, isLoading, error } = useSpaceX();
 
 onMounted(async () => {
   rockets.value = (await fetchData("/api/rockets")) || [];

@@ -1,6 +1,8 @@
 <template>
   <div>
     <h1>Starlink (Primeros 10)</h1>
+    <p v-if="isLoading" class="glow">🔄 Cargando datos...</p>
+    <p v-if="error" class="glow" style="color: red">{{ error }}</p>
     <ul v-if="sats.length">
       <li v-for="sat in sats.slice(0, 10)" :key="sat.id">
         {{ sat.name }} - {{ sat.latitude }}°, {{ sat.longitude }}° @
@@ -24,7 +26,7 @@ interface Starlink {
 }
 
 const sats = ref<Starlink[]>([]);
-const { fetchData } = useSpaceX();
+const { fetchData, isLoading, error } = useSpaceX();
 
 onMounted(async () => {
   sats.value = (await fetchData<Starlink[]>("/api/starlink")) || [];
