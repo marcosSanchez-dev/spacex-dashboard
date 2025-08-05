@@ -84,10 +84,49 @@ let satelliteGroup: THREE.Group;
 const satObjects: THREE.Mesh[] = [];
 
 onMounted(async () => {
-  satellites.value =
-    (await fetchData<StarlinkSatellite[]>("/api/starlink")) || [];
+  const apiData = await fetchData<StarlinkSatellite[]>("/api/starlink");
+  satellites.value = apiData || [];
+
+  // Añadir satélites de demostración si hay pocos en ciertas categorías
+  if (!hasEnoughPolarSats(satellites.value)) {
+    addDemoSatellites("polar", 20);
+  }
+
+  if (!hasEnoughGeoSats(satellites.value)) {
+    addDemoSatellites("geo", 15);
+  }
+
   initGlobe();
 });
+
+// Verificar si hay suficientes satélites polares
+function hasEnoughPolarSats(sats: StarlinkSatellite[]): boolean {
+  return sats.filter((sat) => sat.inclination_deg >= 85).length > 5;
+}
+
+// Verificar si hay suficientes satélites geoestacionarios
+function hasEnoughGeoSats(sats: StarlinkSatellite[]): boolean {
+  return sats.filter((sat) => sat.inclination_deg <= 5).length > 5;
+}
+
+// Añadir satélites de demostración
+function addDemoSatellites(type: "polar" | "geo", count: number) {
+  const baseInclination = type === "polar" ? 85 : 0;
+
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const inclination = baseInclination + Math.random() * 5;
+
+    satellites.value.push({
+      id: `demo-${type}-${i}`,
+      name: `DEMO ${type.toUpperCase()} ${i + 1}`,
+      latitude: null,
+      longitude: null,
+      altitude_km: type === "geo" ? 35786 : 550,
+      inclination_deg: inclination,
+    });
+  }
+}
 
 // Satélites visibles según filtro
 const visibleSatellites = computed(() => {
@@ -124,7 +163,10 @@ function initGlobe() {
   camera.position.z = 3;
 
   // 3. Crear renderizador
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+  });
   renderer.setSize(
     globeContainer.value.clientWidth,
     globeContainer.value.clientHeight
@@ -132,11 +174,21 @@ function initGlobe() {
   renderer.setPixelRatio(window.devicePixelRatio);
   globeContainer.value.appendChild(renderer.domElement);
 
-  // 4. Controles de órbita
+  // 4. Controles de órbita (solo rotación)
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
   controls.rotateSpeed = 0.5;
+
+  // Configurar controles para solo rotación
+  controls.enablePan = false; // Desactivar movimiento lateral
+  controls.enableZoom = true; // Permitir zoom
+  controls.screenSpacePanning = false;
+  controls.mouseButtons = {
+    LEFT: THREE.MOUSE.ROTATE, // Click izquierdo para rotar
+    MIDDLE: THREE.MOUSE.DOLLY, // Rueda del mouse para zoom
+    RIGHT: THREE.MOUSE.ROTATE, // Click derecho también para rotar
+  };
 
   // 5. Crear Tierra
   createEarth();
@@ -208,12 +260,15 @@ function createSatellites() {
   const geometry = new THREE.SphereGeometry(0.015, 8, 8);
 
   satellites.value.forEach((sat, index) => {
-    // Si no hay datos de posición, generar posición simulada basada en inclinación
     const position = generateSatellitePosition(sat, index);
 
+    // Color diferente para satélites de demostración
+    const isDemo = sat.id.includes("demo");
+    const color = isDemo ? 0xff7700 : 0xffff00;
+
     const material = new THREE.MeshPhongMaterial({
-      color: 0xffff00,
-      emissive: 0xffff00,
+      color: color,
+      emissive: color,
       emissiveIntensity: 0.8,
       shininess: 100,
     });
@@ -225,13 +280,11 @@ function createSatellites() {
     satellite.userData = {
       inclination: sat.inclination_deg,
       altitude: sat.altitude_km || 550,
+      isDemo: isDemo,
     };
 
     satelliteGroup.add(satellite);
     satObjects.push(satellite);
-
-    // Crear trayectoria orbital
-    createOrbitPath(position.length(), sat.inclination_deg);
   });
 }
 
@@ -239,23 +292,10 @@ function generateSatellitePosition(
   sat: StarlinkSatellite,
   index: number
 ): THREE.Vector3 {
-  // Si tenemos datos reales, usarlos
-  if (
-    sat.latitude !== null &&
-    sat.longitude !== null &&
-    sat.altitude_km !== null
-  ) {
-    return latLonAltToVector3(
-      sat.latitude,
-      sat.longitude,
-      sat.altitude_km / 6371
-    );
-  }
-
-  // Generar posición simulada basada en inclinación
+  // Generar posición basada en inclinación
   const inclination = sat.inclination_deg;
-  const altitude = sat.altitude_km || 550; // Altitud predeterminada para Starlink
-  const altitudeNorm = altitude / 6371; // Normalizar por radio de la Tierra
+  const altitude = sat.altitude_km || 550;
+  const altitudeNorm = altitude / 6371;
 
   // Ángulo orbital basado en índice para distribución
   const orbitAngle = (index / satellites.value.length) * Math.PI * 2;
@@ -271,49 +311,26 @@ function generateSatellitePosition(
   return new THREE.Vector3(x, y, z);
 }
 
-function createOrbitPath(radius: number, inclination: number) {
-  const points = [];
-  const segments = 100;
-
-  for (let i = 0; i <= segments; i++) {
-    const theta = (i / segments) * Math.PI * 2;
-    const x = Math.cos(theta) * radius;
-    const y =
-      Math.sin((inclination * Math.PI) / 180) * Math.sin(theta) * radius;
-    const z = Math.sin(theta) * radius;
-    points.push(new THREE.Vector3(x, y, z));
-  }
-
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
-  const material = new THREE.LineBasicMaterial({
-    color: 0x444444,
-    transparent: true,
-    opacity: 0.3,
-  });
-
-  const orbit = new THREE.Line(geometry, material);
-  scene.add(orbit);
-}
-
-function latLonAltToVector3(lat: number, lon: number, altNorm: number) {
-  const phi = ((90 - lat) * Math.PI) / 180;
-  const theta = ((lon + 180) * Math.PI) / 180;
-
-  const radius = 1 + altNorm;
-
-  return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta)
-  );
-}
-
 function updateSatelliteVisibility() {
   satObjects.forEach((sat) => {
-    const visible =
-      activeOrbit.value === "all" ||
-      (activeOrbit.value === "polar" && sat.userData.inclination >= 85) ||
-      (activeOrbit.value === "geo" && sat.userData.inclination <= 5);
+    let visible = false;
+
+    if (activeOrbit.value === "all") {
+      visible = true;
+    } else if (activeOrbit.value === "polar") {
+      visible = sat.userData.inclination >= 85;
+    } else if (activeOrbit.value === "geo") {
+      visible = sat.userData.inclination <= 5;
+    }
+
+    // Mantener visibles los satélites de demostración en sus categorías
+    if (sat.userData.isDemo) {
+      if (activeOrbit.value === "polar" && sat.userData.inclination >= 85) {
+        visible = true;
+      } else if (activeOrbit.value === "geo" && sat.userData.inclination <= 5) {
+        visible = true;
+      }
+    }
 
     sat.visible = visible;
   });
@@ -333,7 +350,12 @@ function animate() {
   // Animación de satélites
   satObjects.forEach((sat, index) => {
     sat.rotation.y += 0.01;
-    sat.position.y = Math.sin(Date.now() * 0.001 + index) * 0.01;
+
+    // Efecto de "parpadeo" para satélites de demostración
+    if (sat.userData.isDemo) {
+      const blink = Math.sin(Date.now() * 0.005 + index) * 0.5 + 0.5;
+      (sat.material as THREE.MeshPhongMaterial).emissiveIntensity = blink * 0.8;
+    }
   });
 
   controls.update();
@@ -359,18 +381,32 @@ function createFallbackTexture(
   color3: string
 ): THREE.Texture {
   const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 512;
   const ctx = canvas.getContext("2d")!;
 
-  // Crear un gradiente simple
-  const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-  gradient.addColorStop(0, color1);
-  gradient.addColorStop(0.5, color2);
-  gradient.addColorStop(1, color3);
+  // Crear un mapa de la Tierra simple
+  ctx.fillStyle = color1; // Océanos
+  ctx.fillRect(0, 0, 512, 512);
 
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 256, 256);
+  // Continentes
+  ctx.fillStyle = color2;
+  ctx.beginPath();
+  ctx.ellipse(150, 200, 70, 100, 0, 0, Math.PI * 2); // América
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(350, 150, 80, 90, 0, 0, Math.PI * 2); // Europa/Asia
+  ctx.fill();
+
+  ctx.fillStyle = color3;
+  ctx.beginPath();
+  ctx.ellipse(400, 350, 60, 70, 0, 0, Math.PI * 2); // Australia
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.ellipse(100, 350, 90, 80, 0, 0, Math.PI * 2); // África
+  ctx.fill();
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -381,7 +417,7 @@ function createGradientTexture(): THREE.Texture {
   canvas.height = 256;
   const ctx = canvas.getContext("2d")!;
 
-  const gradient = ctx.createLinearGradient(0, 0, 256, 256);
+  const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
   gradient.addColorStop(0, "#000000");
   gradient.addColorStop(1, "#ffffff");
 
