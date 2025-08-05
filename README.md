@@ -40,16 +40,17 @@ uvicorn main:app --reload
 Backend en: http://localhost:8000
 Documentación en: http://localhost:8000/docs
 
-2. Frontend
-   bash
-   Copiar
-   cd frontend
-   npm install
-   npm run dev
-   Frontend en: http://localhost:5173
+### 2. Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Frontend en: http://localhost:5173
 
-🧪 Rutas API
-Endpoint Descripción
-/api/rockets Lista de cohetes
-/api/launches KPIs de lanzamientos (opcional: ?year=2020)
-/api/starlink Primeros 10 satélites Starlink
+
+### 🧪 Rutas API
+Endpoint	      Descripción
+/api/rockets	Lista de cohetes
+/api/launches	KPIs de lanzamientos (opcional: ?year=2020)
+/api/starlink	Primeros 10 satélites Starlink
