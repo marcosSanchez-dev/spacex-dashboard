@@ -153,14 +153,14 @@ function initGlobe() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000814);
 
-  // 2. Crear cámara
+  // 2. Crear cámara - Ajustada para vista más amplia
   camera = new THREE.PerspectiveCamera(
     45,
     globeContainer.value.clientWidth / globeContainer.value.clientHeight,
     0.1,
-    1000
+    100000 // Rango extendido para ver satélites lejanos
   );
-  camera.position.z = 3;
+  camera.position.set(0, 0, 15); // Más alejado para ver todo
 
   // 3. Crear renderizador
   renderer = new THREE.WebGLRenderer({
@@ -190,8 +190,8 @@ function initGlobe() {
     RIGHT: THREE.MOUSE.ROTATE, // Click derecho también para rotar
   };
 
-  // 5. Crear Tierra
-  createEarth();
+  // 5. Crear Tierra con textura realista
+  createRealisticEarth();
 
   // 6. Crear satélites
   createSatellites();
@@ -216,11 +216,83 @@ function initGlobe() {
   window.addEventListener("resize", onWindowResize);
 }
 
-function createEarth() {
-  // Textura de la Tierra
+async function createRealisticEarth() {
   const textureLoader = new THREE.TextureLoader();
 
-  // Usar texturas base64 integradas como fallback
+  // Texturas de alta resolución de NASA
+  const texturePaths = {
+    color: "/textures/earth/color.jpg",
+    bump: "/textures/earth/bump.jpg",
+    specular: "/textures/earth/specular.jpg",
+    clouds: "/textures/earth/clouds.jpg",
+  };
+
+  try {
+    // Cargar texturas
+    const earthTexture = await textureLoader.loadAsync(texturePaths.color);
+    const bumpMap = await textureLoader.loadAsync(texturePaths.bump);
+    const specularMap = await textureLoader.loadAsync(texturePaths.specular);
+    const cloudsTexture = await textureLoader.loadAsync(texturePaths.clouds);
+
+    // Configurar materiales
+    earthTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    bumpMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    specularMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    cloudsTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    // Material para la Tierra
+    const earthMaterial = new THREE.MeshPhongMaterial({
+      map: earthTexture,
+      bumpMap: bumpMap,
+      bumpScale: 0.05,
+      specularMap: specularMap,
+      specular: new THREE.Color(0x333333),
+      shininess: 15,
+    });
+
+    const earthGeometry = new THREE.SphereGeometry(1, 128, 128);
+    earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    scene.add(earth);
+
+    // Material para las nubes
+    const cloudsMaterial = new THREE.MeshPhongMaterial({
+      map: cloudsTexture,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+    });
+
+    const cloudsGeometry = new THREE.SphereGeometry(1.005, 128, 128);
+    const clouds = new THREE.Mesh(cloudsGeometry, cloudsMaterial);
+    scene.add(clouds);
+
+    // Crear atmósfera
+    createAtmosphere();
+  } catch (error) {
+    console.error("Error loading Earth textures:", error);
+    // Fallback a texturas básicas
+    createBasicEarth();
+  }
+}
+
+function createAtmosphere() {
+  const atmosphereGeometry = new THREE.SphereGeometry(1.02, 128, 128);
+  const atmosphereMaterial = new THREE.MeshPhongMaterial({
+    color: 0x5588dd,
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.BackSide,
+    shininess: 0,
+  });
+
+  const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+  scene.add(atmosphere);
+}
+
+function createBasicEarth() {
+  const textureLoader = new THREE.TextureLoader();
+
+  // Crear texturas básicas como fallback
   const earthTexture = createFallbackTexture("#1a5c9e", "#0a4a36", "#d8d0c1");
   const bumpMap = createGradientTexture();
   const specularMap = createGradientTexture();
@@ -238,7 +310,7 @@ function createEarth() {
   earth = new THREE.Mesh(geometry, material);
   scene.add(earth);
 
-  // Nubes (opcional)
+  // Nubes básicas
   const cloudsMaterial = new THREE.MeshPhongMaterial({
     color: 0xffffff,
     transparent: true,
@@ -256,11 +328,28 @@ function createSatellites() {
   satelliteGroup = new THREE.Group();
   scene.add(satelliteGroup);
 
-  // Crear geometría de satélite
+  // Crear geometría de satélite (esfera pequeña)
   const geometry = new THREE.SphereGeometry(0.015, 8, 8);
 
   satellites.value.forEach((sat, index) => {
-    const position = generateSatellitePosition(sat, index);
+    // Generar posición
+    let position: THREE.Vector3;
+
+    // Para satélites geoestacionarios, colocarlos en el plano ecuatorial a mayor distancia
+    if (sat.inclination_deg <= 5) {
+      const orbitAngle = (index / satellites.value.length) * Math.PI * 2;
+      const altitude = sat.altitude_km || 35786;
+      const orbitRadius = 1 + altitude / 6371;
+
+      position = new THREE.Vector3(
+        Math.cos(orbitAngle) * orbitRadius,
+        0,
+        Math.sin(orbitAngle) * orbitRadius
+      );
+    } else {
+      // Para otros satélites, usar la función general
+      position = generateSatellitePosition(sat, index);
+    }
 
     // Color diferente para satélites de demostración
     const isDemo = sat.id.includes("demo");
@@ -275,6 +364,9 @@ function createSatellites() {
 
     const satellite = new THREE.Mesh(geometry, material);
     satellite.position.copy(position);
+
+    // Orientar el satélite hacia la Tierra
+    satellite.lookAt(new THREE.Vector3(0, 0, 0));
 
     // Guardar datos para filtrado
     satellite.userData = {
@@ -292,7 +384,6 @@ function generateSatellitePosition(
   sat: StarlinkSatellite,
   index: number
 ): THREE.Vector3 {
-  // Generar posición basada en inclinación
   const inclination = sat.inclination_deg;
   const altitude = sat.altitude_km || 550;
   const altitudeNorm = altitude / 6371;
@@ -349,8 +440,6 @@ function animate() {
 
   // Animación de satélites
   satObjects.forEach((sat, index) => {
-    sat.rotation.y += 0.01;
-
     // Efecto de "parpadeo" para satélites de demostración
     if (sat.userData.isDemo) {
       const blink = Math.sin(Date.now() * 0.005 + index) * 0.5 + 0.5;
@@ -548,6 +637,11 @@ onUnmounted(() => {
   justify-content: center;
   padding: 30px;
   gap: 15px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
 }
 
 .spinner {
@@ -580,6 +674,11 @@ onUnmounted(() => {
   align-items: center;
   backdrop-filter: blur(5px);
   box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
 }
 
 .error-toast button {
