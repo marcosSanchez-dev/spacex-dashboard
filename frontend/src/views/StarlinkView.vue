@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 
@@ -217,17 +217,18 @@ function initGlobe() {
 }
 
 async function createRealisticEarth() {
-  const textureLoader = new THREE.TextureLoader();
-
-  // Texturas de alta resolución de NASA
-  const texturePaths = {
-    color: "/textures/earth/color.jpg",
-    bump: "/textures/earth/bump.jpg",
-    specular: "/textures/earth/specular.jpg",
-    clouds: "/textures/earth/clouds.jpg",
-  };
-
   try {
+    // Mover textureLoader dentro del try para evitar error de no uso
+    const textureLoader = new THREE.TextureLoader();
+
+    // Texturas de alta resolución de NASA
+    const texturePaths = {
+      color: "/textures/earth/color.jpg",
+      bump: "/textures/earth/bump.jpg",
+      specular: "/textures/earth/specular.jpg",
+      clouds: "/textures/earth/clouds.jpg",
+    };
+
     // Cargar texturas
     const earthTexture = await textureLoader.loadAsync(texturePaths.color);
     const bumpMap = await textureLoader.loadAsync(texturePaths.bump);
@@ -268,8 +269,8 @@ async function createRealisticEarth() {
 
     // Crear atmósfera
     createAtmosphere();
-  } catch (error) {
-    console.error("Error loading Earth textures:", error);
+  } catch (err) {
+    console.error("Error loading Earth textures:", err);
     // Fallback a texturas básicas
     createBasicEarth();
   }
@@ -290,8 +291,6 @@ function createAtmosphere() {
 }
 
 function createBasicEarth() {
-  const textureLoader = new THREE.TextureLoader();
-
   // Crear texturas básicas como fallback
   const earthTexture = createFallbackTexture("#1a5c9e", "#0a4a36", "#d8d0c1");
   const bumpMap = createGradientTexture();
@@ -380,6 +379,7 @@ function createSatellites() {
   });
 }
 
+// Eliminar parámetro 'angle' no utilizado
 function generateSatellitePosition(
   sat: StarlinkSatellite,
   index: number

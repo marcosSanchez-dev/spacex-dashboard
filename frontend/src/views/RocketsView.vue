@@ -55,7 +55,7 @@
     <div class="chart-container">
       <Rocket3DBarChart
         :data="filteredRockets"
-        :year="selectedYear"
+        :year="selectedYear || undefined"
         class="glow-chart"
       />
     </div>

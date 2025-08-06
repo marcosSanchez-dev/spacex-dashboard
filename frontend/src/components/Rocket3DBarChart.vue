@@ -16,11 +16,22 @@
 
 <script setup lang="ts">
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 
+// Definir interfaz para los datos del cohete
+interface RocketData {
+  name: string;
+  height: number;
+  mass: number;
+}
+
 const props = defineProps({
-  data: Array,
+  data: {
+    type: Array as () => RocketData[],
+    required: true,
+    default: () => [],
+  },
   year: Number,
 });
 
@@ -127,14 +138,15 @@ function createScene() {
   bars.forEach((bar) => scene.remove(bar));
   bars = [];
 
+  // Verificar que data existe y tiene elementos
   if (!props.data || props.data.length === 0) return;
 
-  // Crear barras para cada cohete
-  props.data.forEach((rocket, index) => {
+  // Crear barras para cada cohete con tipo explícito
+  props.data.forEach((rocket: RocketData, index) => {
     const x = index * barSpacing - ((props.data.length - 1) * barSpacing) / 2;
 
     // Barra de altura
-    const heightScale = rocket.height / 70; // Normalizar altura (Starship ~70m)
+    const heightScale = rocket.height / 70;
     const heightBar = createBar(
       heightScale * maxBarHeight,
       1.5,
@@ -146,7 +158,7 @@ function createScene() {
     );
 
     // Barra de masa
-    const massScale = rocket.mass / 1400000; // Normalizar masa (Starship ~1,400,000kg)
+    const massScale = rocket.mass / 1400000;
     const massBar = createBar(
       massScale * maxBarHeight,
       1.5,

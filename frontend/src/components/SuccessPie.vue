@@ -9,7 +9,6 @@
 </template>
 
 <script setup lang="ts">
-// @ts-ignore
 import * as d3 from "d3";
 import { ref, onMounted, watch, computed } from "vue";
 
@@ -35,10 +34,17 @@ const failurePercent = computed(() =>
 // Animación de entrada
 let initialAnimationComplete = ref(false);
 
+// Definir tipo para los datos del arco
+interface PieData {
+  label: string;
+  value: number;
+  color: string;
+}
+
 const drawChart = () => {
   if (!svgRef.value) return;
 
-  const data = [
+  const data: PieData[] = [
     { label: "Success", value: props.success, color: "#00ff9d" },
     { label: "Failure", value: props.failure, color: "#ff0055" },
   ];
@@ -70,11 +76,12 @@ const drawChart = () => {
 
   // Crear gráfico de pastel
   const pie = d3
-    .pie<any>()
+    .pie<PieData>()
     .value((d) => d.value)
     .sort(null);
+
   const arc = d3
-    .arc<any>()
+    .arc<d3.PieArcDatum<PieData>>()
     .innerRadius(radius * 0.5)
     .outerRadius(radius)
     .cornerRadius(8);
@@ -86,12 +93,12 @@ const drawChart = () => {
     .append("g")
     .attr("class", "arc");
 
-  // Animación de entrada
-  const arcTween = (d: any) => {
-    const i = d3.interpolate(d.startAngle + 0.1, d.endAngle);
+  // Animación de entrada - CORRECCIÓN PRINCIPAL
+  const arcTween = (d: d3.PieArcDatum<PieData>) => {
+    const interpolate = d3.interpolate(d.startAngle, d.endAngle);
     return (t: number) => {
-      d.endAngle = i(t);
-      return arc(d);
+      d.endAngle = interpolate(t);
+      return arc(d) as string; // Asegurar que devuelve string
     };
   };
 
@@ -105,7 +112,7 @@ const drawChart = () => {
     .style("opacity", 0)
     .transition()
     .duration(1200)
-    .delay((d, i) => i * 300)
+    .delay((_, i) => i * 300)
     .attrTween("d", arcTween)
     .style("opacity", 1);
 
