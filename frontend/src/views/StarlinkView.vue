@@ -525,39 +525,41 @@ onUnmounted(() => {
 
 <style scoped>
 .starlink-view {
-  background: radial-gradient(ellipse at center, #0a0e29 0%, #000814 70%);
-  color: #e0f7fa;
+  background: radial-gradient(ellipse at center, #0a0e29 0%, #00040f 80%);
+  color: #d5faff;
   padding: 20px;
   min-height: 100vh;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Orbitron", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
 }
 
 .glow-title {
   text-align: center;
-  font-size: 2.5rem;
+  font-size: 3rem;
   margin-bottom: 30px;
-  text-shadow: 0 0 10px rgba(255, 255, 0, 0.5), 0 0 20px rgba(255, 255, 0, 0.3);
-  letter-spacing: 2px;
+  text-shadow: 0 0 15px #00fff7, 0 0 30px #00d1ff;
+  letter-spacing: 3px;
+  text-transform: uppercase;
 }
 
 .globe-container {
   width: 100%;
   height: 80vh;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 0 30px rgba(255, 255, 0, 0.1);
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
 }
 
 .orbit-controls {
-  background: rgba(16, 22, 58, 0.6);
-  border: 1px solid rgba(255, 255, 0, 0.3);
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 25px;
-  backdrop-filter: blur(5px);
-  max-width: 800px;
+  background: rgba(10, 15, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  border-radius: 16px;
+  padding: 20px;
   margin: 0 auto 30px;
+  backdrop-filter: blur(6px);
+  max-width: 850px;
+  transition: box-shadow 0.3s ease;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
 }
 
 .filter-header {
@@ -571,7 +573,8 @@ onUnmounted(() => {
   margin: 0;
   font-weight: 600;
   letter-spacing: 1px;
-  color: #ffeb3b;
+  color: #00fff7;
+  text-transform: uppercase;
 }
 
 .toggle-group {
@@ -584,24 +587,26 @@ onUnmounted(() => {
   flex: 1;
   min-width: 120px;
   padding: 10px 15px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 0, 0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
   background: rgba(0, 0, 0, 0.4);
-  color: #ffeb3b;
+  color: #00fff7;
   cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: all 0.25s ease;
 }
 
 .toggle-group button:hover {
-  background: rgba(255, 255, 0, 0.1);
+  background: rgba(0, 255, 255, 0.1);
   transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
 
 .toggle-group button.active {
-  background: rgba(255, 255, 0, 0.3);
-  border-color: #ffeb3b;
-  box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+  background: rgba(0, 255, 255, 0.3);
+  border-color: #00fff7;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
 }
 
 .stats {
@@ -617,18 +622,19 @@ onUnmounted(() => {
   padding: 8px 15px;
   border-radius: 20px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 0, 0.3);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.1);
 }
 
 .sat-icon {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ffff00;
-  box-shadow: 0 0 5px #ffff00;
+  background: #00fff7;
+  box-shadow: 0 0 6px #00fff7;
 }
 
-/* Reutilizar estilos de spinner y error toast de vistas anteriores */
+/* CARGA */
 .loading-indicator {
   display: flex;
   flex-direction: column;
@@ -646,8 +652,8 @@ onUnmounted(() => {
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(255, 255, 0, 0.2);
-  border-top: 4px solid #ffeb3b;
+  border: 4px solid rgba(0, 255, 255, 0.2);
+  border-top: 4px solid #00fff7;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -661,17 +667,18 @@ onUnmounted(() => {
   }
 }
 
+/* ERROR */
 .error-toast {
-  background: rgba(255, 88, 88, 0.15);
-  border: 1px solid rgba(255, 100, 100, 0.3);
-  border-radius: 8px;
+  background: rgba(255, 40, 40, 0.1);
+  border: 1px solid rgba(255, 60, 60, 0.3);
+  border-radius: 10px;
   padding: 12px 20px;
   margin: 15px auto;
   max-width: 500px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(4px);
   box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
   position: absolute;
   top: 20px;
@@ -688,7 +695,7 @@ onUnmounted(() => {
   font-size: 1.2rem;
 }
 
-/* Transiciones */
+/* TRANSICIONES */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s ease;
