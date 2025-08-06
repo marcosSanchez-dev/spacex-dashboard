@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 
 // Definir interfaz para los datos del cohete

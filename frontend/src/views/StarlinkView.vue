@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 
@@ -114,7 +114,6 @@ function addDemoSatellites(type: "polar" | "geo", count: number) {
   const baseInclination = type === "polar" ? 85 : 0;
 
   for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2;
     const inclination = baseInclination + Math.random() * 5;
 
     satellites.value.push({
