@@ -1,11 +1,9 @@
 <template>
   <div class="dashboard-container">
-    <!-- Título con efecto de brillo mejorado -->
     <h1 class="glow-title">
       <span class="rocket-icon">🚀</span> SpaceX Launch Dashboard
     </h1>
 
-    <!-- Indicadores de estado mejorados -->
     <transition name="fade">
       <div v-if="isLoading" class="loading-indicator">
         <div class="spinner"></div>
@@ -19,7 +17,6 @@
       </div>
     </transition>
 
-    <!-- Panel de filtros con estilo espacial -->
     <div class="filter-panel glow-box">
       <div class="filter-header">
         <span class="filter-icon">🗓️</span>
@@ -32,10 +29,6 @@
           max="2025"
           v-model="selectedYear"
           class="timeline-slider"
-          :style="{
-            '--track-color': 'rgba(0, 255, 255, 0.1)',
-            '--thumb-color': '#9d4edd',
-          }"
         />
         <div class="slider-labels">
           <span>2006</span>
@@ -45,7 +38,6 @@
       </div>
     </div>
 
-    <!-- Tarjetas KPI con animaciones mejoradas -->
     <div v-if="data" class="kpi-grid">
       <div class="kpi-card" v-for="(card, index) in kpiCards" :key="index">
         <div class="kpi-header">
@@ -59,13 +51,11 @@
       </div>
     </div>
 
-    <!-- Gráfico de pastel con contenedor dedicado -->
-    <div class="chart-container">
+    <div class="chart-container glow-box">
       <SuccessPie
         v-if="data"
         :success="data.successful_launches"
         :failure="data.failed_launches"
-        class="glow-box"
       />
       <div class="chart-label">SUCCESS VS FAILED LAUNCHES</div>
     </div>
@@ -82,7 +72,6 @@ const data = ref<any>(null);
 const selectedYear = ref<number | null>(null);
 const { fetchData, isLoading, error } = useSpaceX();
 
-// Computed para tarjetas KPI
 const kpiCards = computed(() =>
   data.value
     ? [
@@ -121,28 +110,27 @@ onMounted(async () => {
 .dashboard-container {
   background: radial-gradient(
     ellipse at center,
-    #0f2027 0%,
-    #203a43 50%,
-    #2c5364 100%
+    #0a0f2c 0%,
+    #141b3a 40%,
+    #0b1d34 100%
   );
-  color: #e0f7fa;
-  padding: 20px;
+  color: #d0f0ff;
+  padding: 24px;
   min-height: 100vh;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Orbitron", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Título mejorado */
 .glow-title {
   text-align: center;
-  font-size: 2.5rem;
+  font-size: 2.7rem;
   margin-bottom: 30px;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 150, 255, 0.5);
-  letter-spacing: 2px;
-  position: relative;
+  text-shadow: 0 0 12px rgba(0, 255, 255, 0.75), 0 0 25px rgba(0, 150, 255, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 15px;
+  letter-spacing: 2px;
+  color: #00e6ff;
 }
 
 .rocket-icon {
@@ -155,172 +143,140 @@ onMounted(async () => {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
 }
 
-/* Panel de filtros */
 .filter-panel {
   background: rgba(16, 22, 58, 0.6);
   border: 1px solid rgba(0, 231, 255, 0.3);
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 25px;
-  backdrop-filter: blur(5px);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 30px;
+  backdrop-filter: blur(6px);
 }
 
 .filter-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 15px;
+  color: #80deea;
+  margin-bottom: 12px;
 }
 
 .filter-header h3 {
   margin: 0;
   font-weight: 600;
-  letter-spacing: 1px;
-  color: #80deea;
+  text-transform: uppercase;
 }
 
-/* Slider personalizado */
 .timeline-slider {
   -webkit-appearance: none;
   width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--track-color) 0%,
-    var(--thumb-color) 50%,
-    var(--track-color) 100%
-  );
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right, #00e6ff, #9d4edd);
   outline: none;
-  margin: 15px 0;
+  transition: background 0.3s ease;
 }
 
 .timeline-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: var(--thumb-color);
-  cursor: pointer;
-  box-shadow: 0 0 10px rgba(157, 78, 221, 0.8);
+  background: #9d4edd;
   border: 2px solid #fff;
-  transition: all 0.3s ease;
+  box-shadow: 0 0 12px #9d4edd;
+  cursor: pointer;
+  transition: transform 0.2s;
 }
 
 .timeline-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 0 15px rgba(157, 78, 221, 1);
+  transform: scale(1.15);
 }
 
 .slider-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 0.9rem;
-  color: #b0bec5;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #a0c4ff;
 }
 
 .current-year {
-  font-weight: bold;
   color: #9d4edd;
+  font-weight: bold;
   text-shadow: 0 0 8px rgba(157, 78, 221, 0.6);
 }
 
-/* Grid de tarjetas KPI */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 20px;
-  margin: 25px 0;
 }
 
 .kpi-card {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(0, 231, 255, 0.15);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 20px;
+  box-shadow: 0 0 15px rgba(0, 150, 255, 0.1);
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   position: relative;
-  overflow: hidden;
 }
 
 .kpi-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(0, 231, 255, 0.4);
-  box-shadow: 0 6px 20px rgba(0, 231, 255, 0.2);
-}
-
-.kpi-card::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, #00e6ff, #9d4edd, #00e6ff);
-  z-index: -1;
-  border-radius: 14px;
-  opacity: 0.3;
+  transform: translateY(-6px);
+  box-shadow: 0 6px 20px rgba(0, 231, 255, 0.25);
 }
 
 .kpi-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  color: #80deea;
 }
 
 .kpi-icon {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
 }
 
 .kpi-header h4 {
-  margin: 0;
-  font-weight: 500;
   font-size: 1rem;
-  color: #80deea;
+  margin: 0;
 }
 
 .kpi-value {
   font-size: 2.2rem;
-  font-weight: 700;
+  font-weight: bold;
   display: flex;
   align-items: flex-end;
   gap: 5px;
 }
 
-/* Contenedor de gráficos */
 .chart-container {
-  background: rgba(16, 22, 58, 0.4);
+  margin-top: 40px;
+  background: rgba(16, 22, 58, 0.5);
+  border-radius: 14px;
   border: 1px solid rgba(0, 231, 255, 0.2);
-  border-radius: 12px;
-  padding: 20px;
-  margin-top: 25px;
-  box-shadow: 0 0 20px rgba(0, 150, 255, 0.1);
+  padding: 24px;
 }
 
 .chart-label {
-  text-align: center;
   margin-top: 15px;
-  font-weight: 600;
+  text-align: center;
   color: #80deea;
+  font-size: 0.9rem;
   letter-spacing: 1px;
   text-transform: uppercase;
-  font-size: 0.9rem;
 }
 
-/* Indicadores de estado */
+/* Loading y error */
 .loading-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 30px;
-  gap: 15px;
+  text-align: center;
+  margin: 30px auto;
 }
 
 .spinner {
@@ -330,6 +286,7 @@ onMounted(async () => {
   border-top: 4px solid #00e6ff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin: auto;
 }
 
 @keyframes spin {
@@ -363,10 +320,9 @@ onMounted(async () => {
   font-size: 1.2rem;
 }
 
-/* Transiciones */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.5s ease;
+  transition: opacity 0.5s;
 }
 .fade-enter-from,
 .fade-leave-to {
