@@ -92,62 +92,60 @@ const filteredRockets = computed(() => {
 
 <style scoped>
 .rockets-view {
-  background: radial-gradient(
-    ellipse at center,
-    #0f2027 0%,
-    #203a43 50%,
-    #2c5364 100%
-  );
-  color: #e0f7fa;
+  background: radial-gradient(ellipse at center, #0a0e29 0%, #000814 80%);
+  color: #d5faff;
   padding: 20px;
   min-height: 100vh;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Orbitron", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .glow-title {
   text-align: center;
-  font-size: 2.5rem;
+  font-size: 3rem;
   margin-bottom: 30px;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 150, 255, 0.5);
-  letter-spacing: 2px;
+  text-shadow: 0 0 15px #00fff7, 0 0 30px #00d1ff;
+  letter-spacing: 3px;
+  text-transform: uppercase;
 }
 
 .chart-container {
-  background: rgba(16, 22, 58, 0.4);
-  border: 1px solid rgba(0, 231, 255, 0.2);
-  border-radius: 12px;
+  background: rgba(10, 15, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 16px;
   padding: 20px;
   margin-top: 30px;
-  box-shadow: 0 0 20px rgba(0, 150, 255, 0.1);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
   height: 600px;
 }
 
 .search-box {
-  background: rgba(16, 22, 58, 0.6);
-  border: 1px solid rgba(0, 231, 255, 0.3);
-  border-radius: 12px;
+  background: rgba(10, 15, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 16px;
   padding: 15px;
   margin: 25px 0;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(6px);
 }
 
 .search-input {
   width: 100%;
   padding: 10px 15px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 231, 255, 0.3);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
   background: rgba(0, 0, 0, 0.4);
   color: white;
   font-size: 1rem;
   outline: none;
+  font-family: "Orbitron", sans-serif;
+  letter-spacing: 1px;
 }
 
 .search-input:focus {
-  border-color: #00e6ff;
-  box-shadow: 0 0 10px rgba(0, 230, 255, 0.5);
+  border-color: #00fff7;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
-/* Reutilizar estilos del Dashboard para spinner, error, y slider */
+/* LOADING */
 .loading-indicator {
   display: flex;
   flex-direction: column;
@@ -160,8 +158,8 @@ const filteredRockets = computed(() => {
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(0, 231, 255, 0.2);
-  border-top: 4px solid #00e6ff;
+  border: 4px solid rgba(0, 255, 255, 0.2);
+  border-top: 4px solid #00fff7;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -175,17 +173,18 @@ const filteredRockets = computed(() => {
   }
 }
 
+/* ERROR */
 .error-toast {
-  background: rgba(255, 88, 88, 0.15);
-  border: 1px solid rgba(255, 100, 100, 0.3);
-  border-radius: 8px;
+  background: rgba(255, 40, 40, 0.1);
+  border: 1px solid rgba(255, 60, 60, 0.3);
+  border-radius: 10px;
   padding: 12px 20px;
   margin: 15px auto;
   max-width: 500px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(4px);
   box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
 }
 
@@ -197,13 +196,14 @@ const filteredRockets = computed(() => {
   font-size: 1.2rem;
 }
 
+/* FILTRO POR AÑO */
 .filter-panel {
-  background: rgba(16, 22, 58, 0.6);
-  border: 1px solid rgba(0, 231, 255, 0.3);
-  border-radius: 12px;
-  padding: 15px;
+  background: rgba(10, 15, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 20px;
   margin-bottom: 25px;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(6px);
 }
 
 .filter-header {
@@ -217,7 +217,8 @@ const filteredRockets = computed(() => {
   margin: 0;
   font-weight: 600;
   letter-spacing: 1px;
-  color: #80deea;
+  color: #00fff7;
+  text-transform: uppercase;
 }
 
 .timeline-slider {
@@ -240,16 +241,16 @@ const filteredRockets = computed(() => {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--thumb-color);
+  background: #00fff7;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(157, 78, 221, 0.8);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
   border: 2px solid #fff;
   transition: all 0.3s ease;
 }
 
 .timeline-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 15px rgba(157, 78, 221, 1);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 1);
 }
 
 .slider-labels {
@@ -261,8 +262,8 @@ const filteredRockets = computed(() => {
 
 .current-year {
   font-weight: bold;
-  color: #9d4edd;
-  text-shadow: 0 0 8px rgba(157, 78, 221, 0.6);
+  color: #00fff7;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
 }
 
 /* Transiciones */
