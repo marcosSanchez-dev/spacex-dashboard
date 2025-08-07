@@ -148,25 +148,30 @@ const rocketYearFilter = ref(new Date().getFullYear());
 const activeOrbitType = ref<string | null>(null);
 
 // Usamos el composable para obtener los métodos y estados
-const { fetchData, isLoading, error, rockets, starlink } = useSpaceX();
+const {
+  fetchData,
+  isLoading,
+  error,
+  rockets,
+  starlink,
+  fetchRockets,
+  fetchStarlink,
+} = useSpaceX();
 
 // Filtrar cohetes por año seleccionado y texto
 const filteredRockets = computed(() => {
   if (!rockets.value) return [];
 
   return rockets.value
-    .filter(
-      (r) =>
-        r.name.toLowerCase().includes(rocketFilter.value.toLowerCase()) &&
-        new Date(r.first_flight).getFullYear() <= rocketYearFilter.value
+    .filter((r) =>
+      r.name.toLowerCase().includes(rocketFilter.value.toLowerCase())
     )
     .map((r) => ({
-      id: r.id,
+      id: r.id || r.name, // usa name como fallback
       name: r.name,
       height: r.height,
       mass: r.mass,
-      first_flight: r.first_flight,
-      success_rate: r.success_rate,
+      success_rate: r.success_rate || 0,
     }));
 });
 
@@ -195,15 +200,14 @@ watch(selectedYear, async () => {
 });
 
 onMounted(async () => {
-  // Cargar datos iniciales
   data.value = await fetchData("/api/launches");
 
-  // Si no están cargados, obtener cohetes y starlink
   if (!rockets.value || rockets.value.length === 0) {
-    await useSpaceX().fetchRockets();
+    await fetchRockets(); // ✅ usa la MISMA instancia
   }
+
   if (!starlink.value || starlink.value.length === 0) {
-    await useSpaceX().fetchStarlink();
+    await fetchStarlink(); // ✅ usa la MISMA instancia
   }
 });
 </script>
