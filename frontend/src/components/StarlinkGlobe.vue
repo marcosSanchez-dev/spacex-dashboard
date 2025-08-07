@@ -52,7 +52,7 @@ function initGlobe() {
     0.1,
     100000
   );
-  camera.position.set(0, 0, 15);
+  camera.position.set(0, 0, 4);
 
   // 3. Crear renderizador
   renderer = new THREE.WebGLRenderer({

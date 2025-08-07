@@ -115,7 +115,7 @@
           <!-- Contenedor para el globo -->
           <div class="globe-container">
             <StarlinkGlobe
-              :satellites="starlink"
+              :satellites="satellitesToUse"
               :highlightOrbit="activeOrbitType"
             />
           </div>
@@ -158,6 +158,26 @@ const {
   fetchStarlink,
 } = useSpaceX();
 
+const satellitesToUse = computed(() =>
+  starlink.value.length > 0 ? starlink.value : generateDemoSatellites()
+);
+
+function generateDemoSatellites(count = 150) {
+  const fake = [];
+  for (let i = 0; i < count; i++) {
+    const inclination = i % 3 === 0 ? 90 : i % 3 === 1 ? 0 : 53;
+    fake.push({
+      id: `demo-${i}`,
+      name: `DemoSat-${i}`,
+      latitude: 0, // No se usa
+      longitude: 0, // No se usa
+      altitude_km: 500 + Math.random() * 300, // entre 500km y 800km
+      inclination_deg: inclination,
+    });
+  }
+  return fake;
+}
+
 // Filtrar cohetes por año seleccionado y texto
 const filteredRockets = computed(() => {
   if (!rockets.value) return [];
@@ -197,6 +217,10 @@ const kpiCards = computed(() => {
 watch(selectedYear, async () => {
   const query = selectedYear.value ? `?year=${selectedYear.value}` : "";
   data.value = await fetchData(`/api/launches${query}`);
+});
+
+watch(starlink, (newVal) => {
+  console.log("🛰️ starlink data enviada a <StarlinkGlobe>:", newVal);
 });
 
 onMounted(async () => {
