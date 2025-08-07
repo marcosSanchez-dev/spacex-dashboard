@@ -165,12 +165,13 @@ function initGlobe() {
   renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
+    logarithmicDepthBuffer: true, // Mejor manejo de profundidad
   });
   renderer.setSize(
     globeContainer.value.clientWidth,
     globeContainer.value.clientHeight
   );
-  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   globeContainer.value.appendChild(renderer.domElement);
 
   // 4. Controles de órbita (solo rotación)
@@ -183,11 +184,8 @@ function initGlobe() {
   controls.enablePan = false; // Desactivar movimiento lateral
   controls.enableZoom = true; // Permitir zoom
   controls.screenSpacePanning = false;
-  controls.mouseButtons = {
-    LEFT: THREE.MOUSE.ROTATE, // Click izquierdo para rotar
-    MIDDLE: THREE.MOUSE.DOLLY, // Rueda del mouse para zoom
-    RIGHT: THREE.MOUSE.ROTATE, // Click derecho también para rotar
-  };
+  controls.minDistance = 10; // Evitar acercarse demasiado
+  controls.maxDistance = 30; // Evitar alejarse demasiado
 
   // 5. Crear Tierra con textura realista
   createRealisticEarth();
@@ -195,18 +193,18 @@ function initGlobe() {
   // 6. Crear satélites
   createSatellites();
 
-  // 7. Iluminación
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  // 7. Iluminación mejorada
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); // Más brillo
   scene.add(ambientLight);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(5, 3, 5);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Más intensidad
+  directionalLight.position.set(5, 3, 5).normalize();
   scene.add(directionalLight);
 
-  // Luz para efecto de brillo
-  const pointLight = new THREE.PointLight(0xffff00, 0.5, 100);
-  pointLight.position.set(10, 10, 10);
-  scene.add(pointLight);
+  // Luz adicional para mejor contraste
+  const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  backLight.position.set(-5, -1, -5).normalize();
+  scene.add(backLight);
 
   // 8. Animación
   animate();
@@ -217,15 +215,14 @@ function initGlobe() {
 
 async function createRealisticEarth() {
   try {
-    // Mover textureLoader dentro del try para evitar error de no uso
     const textureLoader = new THREE.TextureLoader();
 
-    // Texturas de alta resolución de NASA
+    // Texturas de alta resolución de NASA (ruta corregida)
     const texturePaths = {
-      color: "/textures/earth/color.jpg",
-      bump: "/textures/earth/bump.jpg",
-      specular: "/textures/earth/specular.jpg",
-      clouds: "/textures/earth/clouds.jpg",
+      color: "/src/assets/textures/earth/color.jpg", // Ruta corregida
+      bump: "/src/assets/textures/earth/bump.jpg",
+      specular: "/src/assets/textures/earth/specular.jpg",
+      clouds: "/src/assets/textures/earth/clouds.jpg",
     };
 
     // Cargar texturas
@@ -247,7 +244,9 @@ async function createRealisticEarth() {
       bumpScale: 0.05,
       specularMap: specularMap,
       specular: new THREE.Color(0x333333),
-      shininess: 15,
+      shininess: 25, // Más brillo
+      emissive: new THREE.Color(0x0a0e29), // Color base para zonas oscuras
+      emissiveIntensity: 0.1,
     });
 
     const earthGeometry = new THREE.SphereGeometry(1, 128, 128);
@@ -258,8 +257,10 @@ async function createRealisticEarth() {
     const cloudsMaterial = new THREE.MeshPhongMaterial({
       map: cloudsTexture,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.9, // Más visibles
       depthWrite: false,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.1,
     });
 
     const cloudsGeometry = new THREE.SphereGeometry(1.005, 128, 128);
@@ -270,7 +271,7 @@ async function createRealisticEarth() {
     createAtmosphere();
   } catch (err) {
     console.error("Error loading Earth textures:", err);
-    // Fallback a texturas básicas
+    // Fallback a texturas básicas con mejor apariencia
     createBasicEarth();
   }
 }
@@ -280,17 +281,30 @@ function createAtmosphere() {
   const atmosphereMaterial = new THREE.MeshPhongMaterial({
     color: 0x5588dd,
     transparent: true,
-    opacity: 0.15,
+    opacity: 0.25, // Más visible
     side: THREE.BackSide,
     shininess: 0,
   });
 
   const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
   scene.add(atmosphere);
+
+  // Efecto de halo atmosférico
+  const haloGeometry = new THREE.RingGeometry(1.05, 1.15, 64);
+  const haloMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00aaff,
+    transparent: true,
+    opacity: 0.2,
+    side: THREE.DoubleSide,
+  });
+
+  const halo = new THREE.Mesh(haloGeometry, haloMaterial);
+  halo.rotation.x = Math.PI / 2;
+  scene.add(halo);
 }
 
 function createBasicEarth() {
-  // Crear texturas básicas como fallback
+  // Crear texturas básicas como fallback con mejor apariencia
   const earthTexture = createFallbackTexture("#1a5c9e", "#0a4a36", "#d8d0c1");
   const bumpMap = createGradientTexture();
   const specularMap = createGradientTexture();
@@ -299,20 +313,24 @@ function createBasicEarth() {
   const material = new THREE.MeshPhongMaterial({
     map: earthTexture,
     bumpMap: bumpMap,
-    bumpScale: 0.05,
+    bumpScale: 0.08, // Más relieve
     specularMap: specularMap,
-    specular: new THREE.Color(0x333333),
-    shininess: 5,
+    specular: new THREE.Color(0x555555), // Más especular
+    shininess: 15,
+    emissive: 0x0a0e29,
+    emissiveIntensity: 0.1,
   });
 
   earth = new THREE.Mesh(geometry, material);
   scene.add(earth);
 
-  // Nubes básicas
+  // Nubes básicas con mejor apariencia
   const cloudsMaterial = new THREE.MeshPhongMaterial({
     color: 0xffffff,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.3,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.05,
   });
 
   const clouds = new THREE.Mesh(
@@ -326,28 +344,12 @@ function createSatellites() {
   satelliteGroup = new THREE.Group();
   scene.add(satelliteGroup);
 
-  // Crear geometría de satélite (esfera pequeña)
-  const geometry = new THREE.SphereGeometry(0.015, 8, 8);
+  // Crear geometría de satélite (más grande)
+  const geometry = new THREE.SphereGeometry(0.025, 12, 12); // Tamaño aumentado
 
   satellites.value.forEach((sat, index) => {
-    // Generar posición
-    let position: THREE.Vector3;
-
-    // Para satélites geoestacionarios, colocarlos en el plano ecuatorial a mayor distancia
-    if (sat.inclination_deg <= 5) {
-      const orbitAngle = (index / satellites.value.length) * Math.PI * 2;
-      const altitude = sat.altitude_km || 35786;
-      const orbitRadius = 1 + altitude / 6371;
-
-      position = new THREE.Vector3(
-        Math.cos(orbitAngle) * orbitRadius,
-        0,
-        Math.sin(orbitAngle) * orbitRadius
-      );
-    } else {
-      // Para otros satélites, usar la función general
-      position = generateSatellitePosition(sat, index);
-    }
+    // Generar posición corregida
+    const position = generateSatellitePosition(sat, index);
 
     // Color diferente para satélites de demostración
     const isDemo = sat.id.includes("demo");
@@ -356,7 +358,7 @@ function createSatellites() {
     const material = new THREE.MeshPhongMaterial({
       color: color,
       emissive: color,
-      emissiveIntensity: 0.8,
+      emissiveIntensity: 1.0, // Más brillo
       shininess: 100,
     });
 
@@ -365,6 +367,18 @@ function createSatellites() {
 
     // Orientar el satélite hacia la Tierra
     satellite.lookAt(new THREE.Vector3(0, 0, 0));
+
+    // Agregar efecto de halo
+    const haloGeometry = new THREE.SphereGeometry(0.035, 8, 8);
+    const haloMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.BackSide,
+    });
+
+    const halo = new THREE.Mesh(haloGeometry, haloMaterial);
+    satellite.add(halo);
 
     // Guardar datos para filtrado
     satellite.userData = {
@@ -378,27 +392,23 @@ function createSatellites() {
   });
 }
 
-// Eliminar parámetro 'angle' no utilizado
 function generateSatellitePosition(
   sat: StarlinkSatellite,
   index: number
 ): THREE.Vector3 {
   const inclination = sat.inclination_deg;
   const altitude = sat.altitude_km || 550;
-  const altitudeNorm = altitude / 6371;
-
-  // Ángulo orbital basado en índice para distribución
+  const orbitRadius = 1 + altitude / 6371;
   const orbitAngle = (index / satellites.value.length) * Math.PI * 2;
 
-  // Calcular posición usando inclinación y ángulo orbital
-  const x = Math.cos(orbitAngle) * (1 + altitudeNorm);
-  const y =
-    Math.sin((inclination * Math.PI) / 180) *
-    Math.sin(orbitAngle) *
-    (1 + altitudeNorm);
-  const z = Math.sin(orbitAngle) * (1 + altitudeNorm);
+  // Cálculo de posición corregido
+  const inclinationRad = (inclination * Math.PI) / 180;
 
-  return new THREE.Vector3(x, y, z);
+  return new THREE.Vector3(
+    orbitRadius * Math.cos(orbitAngle) * Math.cos(inclinationRad),
+    orbitRadius * Math.sin(inclinationRad),
+    orbitRadius * Math.sin(orbitAngle) * Math.cos(inclinationRad)
+  );
 }
 
 function updateSatelliteVisibility() {
@@ -442,7 +452,7 @@ function animate() {
     // Efecto de "parpadeo" para satélites de demostración
     if (sat.userData.isDemo) {
       const blink = Math.sin(Date.now() * 0.005 + index) * 0.5 + 0.5;
-      (sat.material as THREE.MeshPhongMaterial).emissiveIntensity = blink * 0.8;
+      (sat.material as THREE.MeshPhongMaterial).emissiveIntensity = blink * 1.2;
     }
   });
 
@@ -477,23 +487,49 @@ function createFallbackTexture(
   ctx.fillStyle = color1; // Océanos
   ctx.fillRect(0, 0, 512, 512);
 
-  // Continentes
+  // Continentes con más detalle
   ctx.fillStyle = color2;
+
+  // América del Norte
   ctx.beginPath();
-  ctx.ellipse(150, 200, 70, 100, 0, 0, Math.PI * 2); // América
+  ctx.moveTo(100, 150);
+  ctx.bezierCurveTo(120, 100, 150, 120, 180, 180);
+  ctx.bezierCurveTo(150, 220, 100, 250, 80, 200);
+  ctx.closePath();
   ctx.fill();
 
+  // América del Sur
   ctx.beginPath();
-  ctx.ellipse(350, 150, 80, 90, 0, 0, Math.PI * 2); // Europa/Asia
+  ctx.moveTo(150, 250);
+  ctx.bezierCurveTo(170, 300, 140, 350, 100, 380);
+  ctx.bezierCurveTo(80, 350, 90, 300, 120, 270);
+  ctx.closePath();
   ctx.fill();
 
+  // Europa/Asia
   ctx.fillStyle = color3;
   ctx.beginPath();
-  ctx.ellipse(400, 350, 60, 70, 0, 0, Math.PI * 2); // Australia
+  ctx.moveTo(300, 150);
+  ctx.bezierCurveTo(350, 130, 380, 180, 370, 220);
+  ctx.bezierCurveTo(340, 250, 310, 280, 280, 250);
+  ctx.bezierCurveTo(270, 200, 280, 170, 300, 150);
+  ctx.closePath();
   ctx.fill();
 
+  // África
   ctx.beginPath();
-  ctx.ellipse(100, 350, 90, 80, 0, 0, Math.PI * 2); // África
+  ctx.moveTo(280, 220);
+  ctx.bezierCurveTo(300, 250, 290, 300, 260, 330);
+  ctx.bezierCurveTo(230, 320, 220, 280, 240, 250);
+  ctx.closePath();
+  ctx.fill();
+
+  // Australia
+  ctx.beginPath();
+  ctx.moveTo(420, 320);
+  ctx.bezierCurveTo(440, 300, 460, 320, 450, 350);
+  ctx.bezierCurveTo(430, 370, 410, 360, 410, 340);
+  ctx.closePath();
   ctx.fill();
 
   return new THREE.CanvasTexture(canvas);
@@ -507,7 +543,8 @@ function createGradientTexture(): THREE.Texture {
 
   const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
   gradient.addColorStop(0, "#000000");
-  gradient.addColorStop(1, "#ffffff");
+  gradient.addColorStop(0.7, "#444444");
+  gradient.addColorStop(1, "#888888");
 
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 256, 256);
@@ -547,19 +584,28 @@ onUnmounted(() => {
   height: 80vh;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+  background: #000814;
+}
+
+.globe-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .orbit-controls {
-  background: rgba(10, 15, 40, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  background: rgba(10, 15, 40, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.5);
   border-radius: 16px;
   padding: 20px;
   margin: 0 auto 30px;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(10px);
   max-width: 850px;
   transition: box-shadow 0.3s ease;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+  z-index: 10;
+  position: relative;
 }
 
 .filter-header {
@@ -575,38 +621,47 @@ onUnmounted(() => {
   letter-spacing: 1px;
   color: #00fff7;
   text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
 }
 
 .toggle-group {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .toggle-group button {
   flex: 1;
-  min-width: 120px;
-  padding: 10px 15px;
+  min-width: 160px;
+  padding: 12px 15px;
   border-radius: 10px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.4);
-  color: #00fff7;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  background: rgba(0, 20, 40, 0.6);
+  color: #b0f0ff;
   cursor: pointer;
   font-weight: 600;
   letter-spacing: 1px;
   transition: all 0.25s ease;
+  text-transform: uppercase;
+  font-size: 0.9rem;
 }
 
 .toggle-group button:hover {
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(0, 255, 255, 0.2);
   transform: translateY(-2px);
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
 }
 
 .toggle-group button.active {
-  background: rgba(0, 255, 255, 0.3);
+  background: linear-gradient(
+    45deg,
+    rgba(0, 255, 255, 0.3),
+    rgba(157, 78, 221, 0.3)
+  );
   border-color: #00fff7;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+  color: #ffffff;
 }
 
 .stats {
@@ -619,19 +674,21 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 15px;
+  padding: 10px 20px;
   border-radius: 20px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  box-shadow: 0 0 8px rgba(0, 255, 255, 0.1);
+  background: rgba(0, 10, 30, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .sat-icon {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #00fff7;
-  box-shadow: 0 0 6px #00fff7;
+  box-shadow: 0 0 10px #00fff7;
 }
 
 /* CARGA */
@@ -647,15 +704,19 @@ onUnmounted(() => {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
+  background: rgba(10, 15, 40, 0.8);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(0, 255, 255, 0.2);
-  border-top: 4px solid #00fff7;
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(0, 255, 255, 0.2);
+  border-top: 5px solid #00fff7;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 1.5s linear infinite;
 }
 
 @keyframes spin {
@@ -669,8 +730,8 @@ onUnmounted(() => {
 
 /* ERROR */
 .error-toast {
-  background: rgba(255, 40, 40, 0.1);
-  border: 1px solid rgba(255, 60, 60, 0.3);
+  background: rgba(255, 40, 40, 0.2);
+  border: 1px solid rgba(255, 80, 80, 0.4);
   border-radius: 10px;
   padding: 12px 20px;
   margin: 15px auto;
@@ -678,13 +739,13 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
   position: absolute;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 10;
+  z-index: 20;
 }
 
 .error-toast button {
@@ -693,6 +754,7 @@ onUnmounted(() => {
   color: #fff;
   cursor: pointer;
   font-size: 1.2rem;
+  margin-left: 15px;
 }
 
 /* TRANSICIONES */

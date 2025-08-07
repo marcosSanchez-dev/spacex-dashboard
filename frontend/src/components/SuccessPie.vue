@@ -95,10 +95,14 @@ const drawChart = () => {
 
   // Animación de entrada - CORRECCIÓN PRINCIPAL
   const arcTween = (d: d3.PieArcDatum<PieData>) => {
-    const interpolate = d3.interpolate(d.startAngle, d.endAngle);
+    // FIX: Manejar casos donde startAngle podría ser undefined
+    const start = d.startAngle || 0;
+    const end = d.endAngle || 0;
+    const interpolate = d3.interpolate(start, end);
+
     return (t: number) => {
       d.endAngle = interpolate(t);
-      return arc(d) as string; // Asegurar que devuelve string
+      return arc(d) as string;
     };
   };
 
@@ -165,7 +169,8 @@ watch(
     if (initialAnimationComplete.value) {
       drawChart();
     }
-  }
+  },
+  { deep: true }
 );
 </script>
 
@@ -174,7 +179,11 @@ watch(
   position: relative;
   display: flex;
   justify-content: center;
+  align-items: center;
   margin: 20px 0;
+  width: 100%;
+  height: 100%;
+  min-height: 350px;
 }
 
 .glow-chart {
@@ -186,6 +195,7 @@ watch(
   bottom: 20px;
   display: flex;
   gap: 30px;
+  z-index: 10;
 }
 
 .stat {

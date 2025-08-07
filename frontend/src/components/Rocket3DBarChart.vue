@@ -20,9 +20,12 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 
 interface RocketData {
+  id: string;
   name: string;
   height: number;
   mass: number;
+  first_flight: string;
+  success_rate: number;
 }
 
 const props = defineProps({
@@ -56,9 +59,12 @@ onUnmounted(() => {
 
 watch(
   () => props.data,
-  () => {
-    updateChart();
-  }
+  (newData) => {
+    if (newData && newData.length > 0) {
+      updateChart();
+    }
+  },
+  { deep: true }
 );
 
 watch(
@@ -69,25 +75,32 @@ watch(
 );
 
 function initThreeJS() {
+  if (!chartContainer.value) return;
+
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000814);
   scene.fog = new THREE.Fog(0x000814, 20, 60);
 
   camera = new THREE.PerspectiveCamera(
-    75,
-    chartContainer.value!.clientWidth / chartContainer.value!.clientHeight,
+    45, // Ángulo de visión más amplio
+    chartContainer.value.clientWidth / chartContainer.value.clientHeight,
     0.1,
     1000
   );
-  camera.position.set(0, 10, 30);
+  // Posición de cámara ajustada para mejor visualización
+  camera.position.set(10, 15, 30);
 
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    alpha: true,
+    logarithmicDepthBuffer: true, // Mejorar profundidad
+  });
   renderer.setSize(
-    chartContainer.value!.clientWidth,
-    chartContainer.value!.clientHeight
+    chartContainer.value.clientWidth,
+    chartContainer.value.clientHeight
   );
-  renderer.setPixelRatio(window.devicePixelRatio);
-  chartContainer.value!.appendChild(renderer.domElement);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  chartContainer.value.appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -96,24 +109,31 @@ function initThreeJS() {
   controls.minDistance = 15;
   controls.maxDistance = 50;
 
-  scene.add(new THREE.AmbientLight(0x222222, 2));
-  const dirLight = new THREE.DirectionalLight(0x00fff7, 1.2);
-  dirLight.position.set(0, 10, 10);
+  // Mejor iluminación
+  scene.add(new THREE.AmbientLight(0xffffff, 1.5)); // Intensidad aumentada
+  const dirLight = new THREE.DirectionalLight(0x00fff7, 2.0); // Más brillante
+  dirLight.position.set(5, 20, 15);
   scene.add(dirLight);
 
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
   fillLight.position.set(-10, 5, -10);
   scene.add(fillLight);
 
+  // Grid más visible
   const gridHelper = new THREE.GridHelper(50, 10, 0x00c3ff, 0x004d66);
-  (gridHelper.material as THREE.Material).opacity = 0.2;
+  (gridHelper.material as THREE.Material).opacity = 0.4;
   (gridHelper.material as THREE.Material).transparent = true;
   scene.add(gridHelper);
+
+  // Ejes de referencia
+  const axesHelper = new THREE.AxesHelper(10);
+  scene.add(axesHelper);
 
   window.addEventListener("resize", onWindowResize);
 }
 
 function createScene() {
+  // Limpiar barras existentes
   bars.forEach((bar) => scene.remove(bar));
   bars = [];
 
@@ -122,7 +142,10 @@ function createScene() {
   props.data.forEach((rocket: RocketData, index) => {
     const x = index * barSpacing - ((props.data.length - 1) * barSpacing) / 2;
 
-    const heightScale = rocket.height / 70;
+    // Escalas ajustadas para mejor visualización
+    const heightScale = Math.min(rocket.height / 70, 1);
+    const massScale = Math.min(rocket.mass / 1400000, 1);
+
     const heightBar = createBar(
       heightScale * maxBarHeight,
       1.5,
@@ -133,7 +156,6 @@ function createScene() {
       `${rocket.height.toLocaleString()}m`
     );
 
-    const massScale = rocket.mass / 1400000;
     const massBar = createBar(
       massScale * maxBarHeight,
       1.5,
@@ -147,7 +169,8 @@ function createScene() {
     scene.add(heightBar, massBar);
     bars.push(heightBar, massBar);
 
-    const label = createTextLabel(rocket.name, new THREE.Vector3(x, -1.5, 0));
+    // Etiquetas más visibles
+    const label = createTextLabel(rocket.name, new THREE.Vector3(x, -2.5, 0));
     scene.add(label);
   });
 }
@@ -165,7 +188,7 @@ function createBar(
   const material = new THREE.MeshPhongMaterial({
     color,
     emissive: color,
-    emissiveIntensity: 0.2,
+    emissiveIntensity: 0.5, // Aumentado para más brillo
     shininess: 100,
     specular: 0xffffff,
   });
@@ -173,6 +196,7 @@ function createBar(
   const bar = new THREE.Mesh(geometry, material);
   bar.position.set(position.x, position.y, position.z);
 
+  // Bordes brillantes
   const edges = new THREE.EdgesGeometry(geometry);
   const line = new THREE.LineSegments(
     edges,
@@ -180,7 +204,7 @@ function createBar(
       color: 0xffffff,
       linewidth: 2,
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.8, // Más visible
     })
   );
   bar.add(line);
@@ -195,21 +219,26 @@ function createTextLabel(text: string, position: THREE.Vector3) {
   canvas.width = 256;
   canvas.height = 64;
 
-  context.fillStyle = "#000814";
+  // Fondo más transparente
+  context.fillStyle = "rgba(10, 14, 41, 0.7)";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  context.font = "24px Orbitron, Arial";
+  context.font = "bold 22px Orbitron, Arial";
   context.fillStyle = "#00fff7";
   context.textAlign = "center";
+  context.textBaseline = "middle";
   context.shadowColor = "#00c3ff";
-  context.shadowBlur = 8;
-  context.fillText(text, canvas.width / 2, 40);
+  context.shadowBlur = 10; // Más brillo
+  context.fillText(text, canvas.width / 2, canvas.height / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
-  const material = new THREE.SpriteMaterial({ map: texture });
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+  });
   const sprite = new THREE.Sprite(material);
   sprite.position.copy(position);
-  sprite.scale.set(8, 2, 1);
+  sprite.scale.set(10, 2.5, 1); // Más grande
   return sprite;
 }
 
@@ -231,7 +260,6 @@ function onWindowResize() {
 
 function animate() {
   requestAnimationFrame(animate);
-  scene.rotation.y += 0.001;
   controls.update();
   renderer.render(scene, camera);
 }
@@ -253,38 +281,40 @@ function animate() {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  background: rgba(10, 14, 41, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(10, 14, 41, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.5);
   border-radius: 10px;
-  padding: 10px 15px;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+  padding: 12px 18px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  z-index: 10;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 6px 0;
+  gap: 12px;
+  margin: 8px 0;
   color: #d0faff;
   font-family: "Orbitron", sans-serif;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .color-box {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 4px;
-  box-shadow: 0 0 8px;
+  box-shadow: 0 0 12px;
 }
 
 .color-box.height {
   background: #00fff7;
-  box-shadow: 0 0 8px #00fff7;
+  box-shadow: 0 0 12px #00fff7;
 }
 
 .color-box.mass {
   background: #00c3ff;
-  box-shadow: 0 0 8px #00c3ff;
+  box-shadow: 0 0 12px #00c3ff;
 }
 </style>
