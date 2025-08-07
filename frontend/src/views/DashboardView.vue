@@ -1,13 +1,13 @@
 <template>
   <div class="dashboard-container">
     <h1 class="glow-title">
-      <span class="rocket-icon">🚀</span> SpaceX Launch Dashboard
+      <span class="rocket-icon">🚀</span> SpaceX Mission Control
     </h1>
 
     <transition name="fade">
       <div v-if="isLoading" class="loading-indicator">
         <div class="spinner"></div>
-        <p>Loading launch data...</p>
+        <p>Loading space data...</p>
       </div>
     </transition>
 
@@ -17,47 +17,113 @@
       </div>
     </transition>
 
-    <div class="filter-panel glow-box">
-      <div class="filter-header">
-        <span class="filter-icon">🗓️</span>
-        <h3>FILTER BY YEAR</h3>
+    <!-- Sección superior: Estadísticas y filtros -->
+    <div class="dashboard-header">
+      <div class="filter-panel glow-box">
+        <div class="filter-header">
+          <span class="filter-icon">🗓️</span>
+          <h3>MISSION TIMELINE</h3>
+        </div>
+        <div class="slider-container">
+          <input
+            type="range"
+            min="2006"
+            max="2025"
+            v-model="selectedYear"
+            class="timeline-slider"
+          />
+          <div class="slider-labels">
+            <span>2006</span>
+            <span class="current-year">{{ selectedYear || "ALL" }}</span>
+            <span>2025</span>
+          </div>
+        </div>
       </div>
-      <div class="slider-container">
-        <input
-          type="range"
-          min="2006"
-          max="2025"
-          v-model="selectedYear"
-          class="timeline-slider"
-        />
-        <div class="slider-labels">
-          <span>2006</span>
-          <span class="current-year">{{ selectedYear || "ALL" }}</span>
-          <span>2025</span>
+
+      <div class="kpi-grid">
+        <div class="kpi-card" v-for="(card, index) in kpiCards" :key="index">
+          <div class="kpi-header">
+            <div class="kpi-icon">{{ card.icon }}</div>
+            <h4>{{ card.title }}</h4>
+          </div>
+          <div class="kpi-value">
+            <AnimatedCounter :target="card.value" :duration="1.5" />
+            <span v-if="card.unit">{{ card.unit }}</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <div v-if="data" class="kpi-grid">
-      <div class="kpi-card" v-for="(card, index) in kpiCards" :key="index">
-        <div class="kpi-header">
-          <div class="kpi-icon">{{ card.icon }}</div>
-          <h4>{{ card.title }}</h4>
-        </div>
-        <div class="kpi-value">
-          <AnimatedCounter :target="card.value" :duration="1.5" />
-          <span v-if="card.unit">{{ card.unit }}</span>
+    <!-- Sección principal: Paneles de datos -->
+    <div class="dashboard-main">
+      <!-- Columna izquierda: Gráficos de lanzamientos -->
+      <div class="charts-column">
+        <div class="chart-container glow-box">
+          <SuccessPie
+            v-if="data"
+            :success="data.successful_launches"
+            :failure="data.failed_launches"
+          />
+          <div class="chart-label">SUCCESS VS FAILED LAUNCHES</div>
         </div>
       </div>
-    </div>
 
-    <div class="chart-container glow-box">
-      <SuccessPie
-        v-if="data"
-        :success="data.successful_launches"
-        :failure="data.failed_launches"
-      />
-      <div class="chart-label">SUCCESS VS FAILED LAUNCHES</div>
+      <!-- Columna central: Visualización de cohetes -->
+      <div class="rockets-column">
+        <div class="rockets-panel glow-box">
+          <h3 class="panel-title">ROCKET FLEET COMPARISON</h3>
+
+          <!-- Buscador integrado -->
+          <div class="search-box">
+            <input
+              v-model="rocketFilter"
+              type="text"
+              placeholder="Search rocket..."
+              class="search-input"
+            />
+          </div>
+
+          <!-- Gráfico 3D con controles -->
+          <Rocket3DBarChart
+            :data="filteredRockets"
+            :year="rocketYearFilter"
+            class="glow-chart"
+          />
+
+          <div class="rocket-controls">
+            <input
+              type="range"
+              min="2015"
+              max="2025"
+              v-model="rocketYearFilter"
+              class="timeline-slider"
+            />
+            <div class="slider-labels">
+              <span>2015</span>
+              <span class="current-year">{{ rocketYearFilter }}</span>
+              <span>2025</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha: Visualización de satélites -->
+      <div class="starlink-column">
+        <div class="globe-panel glow-box">
+          <h3 class="panel-title">STARLINK NETWORK</h3>
+          <StarlinkGlobe
+            :satellites="starlinkData"
+            :highlightOrbit="activeOrbitType"
+          />
+          <div class="orbit-controls">
+            <button @click="activeOrbitType = 'polar'">POLAR ORBITS</button>
+            <button @click="activeOrbitType = 'geostationary'">
+              GEOSTATIONARY
+            </button>
+            <button @click="activeOrbitType = null">SHOW ALL</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -67,34 +133,58 @@ import { ref, onMounted, watch, computed } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 import SuccessPie from "../components/SuccessPie.vue";
 import AnimatedCounter from "../components/AnimatedCounter.vue";
+import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
+import StarlinkGlobe from "../components/StarlinkGlobe.vue";
 
+// Datos del dashboard
 const data = ref<any>(null);
 const selectedYear = ref<number | null>(null);
-const { fetchData, isLoading, error } = useSpaceX();
+const rocketFilter = ref("");
+const rocketYearFilter = ref(new Date().getFullYear());
+const activeOrbitType = ref<string | null>(null);
+const starlinkData = ref<any[]>([]);
 
-const kpiCards = computed(() =>
-  data.value
-    ? [
-        {
-          icon: "📊",
-          title: "TOTAL LAUNCHES",
-          value: data.value.total_launches,
-        },
-        {
-          icon: "✅",
-          title: "SUCCESS RATE",
-          value: Math.floor(data.value.success_rate_percent),
-          unit: "%",
-        },
-        {
-          icon: "🟢",
-          title: "SUCCESSFUL",
-          value: data.value.successful_launches,
-        },
-        { icon: "🔴", title: "FAILED", value: data.value.failed_launches },
-      ]
-    : []
-);
+// Usamos el composable para obtener los métodos y estados
+const { fetchData, isLoading, error, rockets, starlink } = useSpaceX();
+
+// Filtrar cohetes por año seleccionado y texto
+const filteredRockets = computed(() => {
+  if (!rockets.value) return [];
+
+  return rockets.value
+    .filter(
+      (r) =>
+        r.name.toLowerCase().includes(rocketFilter.value.toLowerCase()) &&
+        new Date(r.first_flight).getFullYear() <= rocketYearFilter.value
+    )
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      height: r.height,
+      mass: r.mass,
+      first_flight: r.first_flight,
+      success_rate: r.success_rate,
+    }));
+});
+
+// Tarjetas KPI
+const kpiCards = computed(() => {
+  const totalLaunches = data.value?.total_launches || 0;
+  const successRate = data.value
+    ? Math.floor(data.value.success_rate_percent)
+    : 0;
+  const successfulLaunches = data.value?.successful_launches || 0;
+  const failedLaunches = data.value?.failed_launches || 0;
+  const starlinkCount = starlink.value.length;
+  const activeRockets = rockets.value?.filter((r) => r.active).length || 0;
+
+  return [
+    { icon: "📊", title: "TOTAL LAUNCHES", value: totalLaunches },
+    { icon: "🛰️", title: "STARLINK SATELLITES", value: starlinkCount },
+    { icon: "✅", title: "SUCCESS RATE", value: successRate, unit: "%" },
+    { icon: "🚀", title: "ACTIVE ROCKETS", value: activeRockets },
+  ];
+});
 
 watch(selectedYear, async () => {
   const query = selectedYear.value ? `?year=${selectedYear.value}` : "";
@@ -102,7 +192,16 @@ watch(selectedYear, async () => {
 });
 
 onMounted(async () => {
+  // Cargar datos iniciales
   data.value = await fetchData("/api/launches");
+
+  // Si no están cargados, obtener cohetes y starlink
+  if (!rockets.value || rockets.value.length === 0) {
+    await useSpaceX().fetchRockets();
+  }
+  if (!starlink.value || starlink.value.length === 0) {
+    await useSpaceX().fetchStarlink();
+  }
 });
 </script>
 
@@ -118,6 +217,27 @@ onMounted(async () => {
   padding: 24px;
   min-height: 100vh;
   font-family: "Orbitron", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboard-header {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.dashboard-main {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.5fr;
+  gap: 24px;
+  height: 65vh;
+}
+
+.charts-column,
+.rockets-column,
+.starlink-column {
+  display: flex;
+  flex-direction: column;
 }
 
 .glow-title {
@@ -137,6 +257,133 @@ onMounted(async () => {
   animation: float 3s ease-in-out infinite;
 }
 
+.filter-panel {
+  background: rgba(16, 22, 58, 0.6);
+  border: 1px solid rgba(0, 231, 255, 0.3);
+  border-radius: 14px;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+  height: 100%;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  height: 100%;
+}
+
+.kpi-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 231, 255, 0.15);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 0 15px rgba(0, 150, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 20px rgba(0, 231, 255, 0.25);
+}
+
+.chart-container,
+.rockets-panel,
+.globe-panel {
+  background: rgba(16, 22, 58, 0.5);
+  border-radius: 14px;
+  border: 1px solid rgba(0, 231, 255, 0.2);
+  padding: 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-title {
+  color: #80deea;
+  margin-top: 0;
+  margin-bottom: 16px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.chart-label {
+  margin-top: 15px;
+  text-align: center;
+  color: #80deea;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.rocket-controls,
+.orbit-controls {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.orbit-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.orbit-controls button {
+  background: rgba(0, 231, 255, 0.2);
+  border: 1px solid rgba(0, 231, 255, 0.4);
+  color: #d0f0ff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.orbit-controls button:hover {
+  background: rgba(0, 231, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 231, 255, 0.5);
+}
+
+.search-box {
+  background: rgba(10, 15, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 15px;
+  backdrop-filter: blur(6px);
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  font-family: "Orbitron", sans-serif;
+  letter-spacing: 1px;
+}
+
+.search-input:focus {
+  border-color: #00fff7;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.glow-chart {
+  flex-grow: 1;
+  min-height: 350px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(5, 10, 30, 0.5);
+  border: 1px solid rgba(0, 231, 255, 0.2);
+}
+
+/* Animaciones y efectos restantes se mantienen igual que antes */
 @keyframes float {
   0%,
   100% {
@@ -145,29 +392,6 @@ onMounted(async () => {
   50% {
     transform: translateY(-8px);
   }
-}
-
-.filter-panel {
-  background: rgba(16, 22, 58, 0.6);
-  border: 1px solid rgba(0, 231, 255, 0.3);
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 30px;
-  backdrop-filter: blur(6px);
-}
-
-.filter-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #80deea;
-  margin-bottom: 12px;
-}
-
-.filter-header h3 {
-  margin: 0;
-  font-weight: 600;
-  text-transform: uppercase;
 }
 
 .timeline-slider {
@@ -210,70 +434,7 @@ onMounted(async () => {
   text-shadow: 0 0 8px rgba(157, 78, 221, 0.6);
 }
 
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-}
-
-.kpi-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 231, 255, 0.15);
-  border-radius: 14px;
-  padding: 20px;
-  box-shadow: 0 0 15px rgba(0, 150, 255, 0.1);
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.kpi-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 6px 20px rgba(0, 231, 255, 0.25);
-}
-
-.kpi-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-  color: #80deea;
-}
-
-.kpi-icon {
-  font-size: 1.6rem;
-}
-
-.kpi-header h4 {
-  font-size: 1rem;
-  margin: 0;
-}
-
-.kpi-value {
-  font-size: 2.2rem;
-  font-weight: bold;
-  display: flex;
-  align-items: flex-end;
-  gap: 5px;
-}
-
-.chart-container {
-  margin-top: 40px;
-  background: rgba(16, 22, 58, 0.5);
-  border-radius: 14px;
-  border: 1px solid rgba(0, 231, 255, 0.2);
-  padding: 24px;
-}
-
-.chart-label {
-  margin-top: 15px;
-  text-align: center;
-  color: #80deea;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-/* Loading y error */
+/* Estilos para loading y error se mantienen igual */
 .loading-indicator {
   text-align: center;
   margin: 30px auto;
@@ -339,5 +500,25 @@ onMounted(async () => {
 .slide-fade-leave-to {
   transform: translateY(-20px);
   opacity: 0;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .dashboard-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    height: auto;
+  }
+
+  .charts-column,
+  .rockets-column,
+  .starlink-column {
+    height: 500px;
+    margin-bottom: 20px;
+  }
+
+  .dashboard-header {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
