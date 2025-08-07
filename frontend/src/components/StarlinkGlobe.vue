@@ -105,12 +105,12 @@ async function createRealisticEarth() {
   try {
     const textureLoader = new THREE.TextureLoader();
 
-    // Usar texturas de la carpeta public/textures/earth
+    // Rutas CORREGIDAS (sin / inicial)
     const texturePaths = {
-      color: "/textures/earth/earthmap4k.jpg",
-      bump: "/textures/earth/earthbump4k.jpg",
-      specular: "/textures/earth/earthspec4k.jpg",
-      clouds: "/textures/earth/earthcloudmap4k.jpg",
+      color: "textures/earth/color.jpg",
+      bump: "textures/earth/bump.jpg",
+      specular: "textures/earth/specular.jpg",
+      clouds: "textures/earth/clouds.jpg",
     };
 
     // Cargar texturas

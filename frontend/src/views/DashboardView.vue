@@ -83,12 +83,13 @@
             />
           </div>
 
-          <!-- Gráfico 3D con controles -->
-          <Rocket3DBarChart
-            :data="filteredRockets"
-            :year="rocketYearFilter"
-            class="glow-chart"
-          />
+          <!-- Contenedor para el gráfico 3D -->
+          <div class="chart-3d-container">
+            <Rocket3DBarChart
+              :data="filteredRockets"
+              :year="rocketYearFilter"
+            />
+          </div>
 
           <div class="rocket-controls">
             <input
@@ -111,10 +112,13 @@
       <div class="starlink-column">
         <div class="globe-panel glow-box">
           <h3 class="panel-title">STARLINK NETWORK</h3>
-          <StarlinkGlobe
-            :satellites="starlinkData"
-            :highlightOrbit="activeOrbitType"
-          />
+          <!-- Contenedor para el globo -->
+          <div class="globe-container">
+            <StarlinkGlobe
+              :satellites="starlink"
+              :highlightOrbit="activeOrbitType"
+            />
+          </div>
           <div class="orbit-controls">
             <button @click="activeOrbitType = 'polar'">POLAR ORBITS</button>
             <button @click="activeOrbitType = 'geostationary'">
@@ -142,7 +146,6 @@ const selectedYear = ref<number | null>(null);
 const rocketFilter = ref("");
 const rocketYearFilter = ref(new Date().getFullYear());
 const activeOrbitType = ref<string | null>(null);
-const starlinkData = ref<any[]>([]);
 
 // Usamos el composable para obtener los métodos y estados
 const { fetchData, isLoading, error, rockets, starlink } = useSpaceX();
@@ -374,13 +377,26 @@ onMounted(async () => {
   box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 }
 
-.glow-chart {
-  flex-grow: 1;
-  min-height: 350px;
+/* Contenedor para el gráfico 3D */
+.chart-3d-container {
+  height: 400px;
+  width: 100%;
   border-radius: 12px;
   overflow: hidden;
   background: rgba(5, 10, 30, 0.5);
   border: 1px solid rgba(0, 231, 255, 0.2);
+  margin-bottom: 15px;
+}
+
+/* Contenedor para el globo */
+.globe-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+  background: #000814;
+  margin-bottom: 15px;
 }
 
 /* Animaciones y efectos restantes se mantienen igual que antes */
@@ -519,6 +535,12 @@ onMounted(async () => {
 
   .dashboard-header {
     grid-template-columns: 1fr;
+  }
+
+  /* Ajustar altura del globo y gráfico 3D en móvil */
+  .chart-3d-container,
+  .globe-container {
+    height: 350px;
   }
 }
 </style>

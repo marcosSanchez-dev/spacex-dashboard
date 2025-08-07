@@ -219,10 +219,10 @@ async function createRealisticEarth() {
 
     // Texturas de alta resolución de NASA (ruta corregida)
     const texturePaths = {
-      color: "/src/assets/textures/earth/color.jpg", // Ruta corregida
-      bump: "/src/assets/textures/earth/bump.jpg",
-      specular: "/src/assets/textures/earth/specular.jpg",
-      clouds: "/src/assets/textures/earth/clouds.jpg",
+      color: "textures/earth/color.jpg", // Ruta corregida
+      bump: "textures/earth/bump.jpg",
+      specular: "textures/earth/specular.jpg",
+      clouds: "textures/earth/clouds.jpg",
     };
 
     // Cargar texturas
