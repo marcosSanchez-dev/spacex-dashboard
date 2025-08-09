@@ -93,7 +93,23 @@ onMounted(async () => {
 
 const filteredRockets = computed(() => {
   return rockets.value
-    .filter((r) => r.name.toLowerCase().includes(filter.value.toLowerCase()))
+    .filter((r) => {
+      // Filtro por nombre
+      const nameMatch = r.name
+        .toLowerCase()
+        .includes(filter.value.toLowerCase());
+
+      // Filtro por año (si se ha seleccionado un año)
+      let yearMatch = true;
+      if (selectedYear.value) {
+        const firstFlightYear = r.first_flight
+          ? new Date(r.first_flight).getFullYear()
+          : null;
+        yearMatch = firstFlightYear === selectedYear.value;
+      }
+
+      return nameMatch && yearMatch;
+    })
     .map((r) => ({
       id: r.id,
       name: r.name,

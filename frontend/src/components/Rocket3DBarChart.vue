@@ -22,10 +22,10 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
 interface RocketData {
   id: string;
   name: string;
-  height: number;
-  mass: number;
-  first_flight: string;
-  success_rate: number;
+  height: number | { meters: number };
+  mass: number | { kg: number };
+  first_flight?: string;
+  success_rate?: number;
 }
 
 const props = defineProps({
@@ -43,6 +43,7 @@ let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 let bars: THREE.Mesh[] = [];
+let labels: THREE.Sprite[] = []; // Almacenar etiquetas para poder eliminarlas
 const barSpacing = 4;
 const maxBarHeight = 20;
 
@@ -133,18 +134,28 @@ function initThreeJS() {
 }
 
 function createScene() {
-  // Limpiar barras existentes
+  // Limpiar barras y etiquetas existentes
   bars.forEach((bar) => scene.remove(bar));
+  labels.forEach((label) => scene.remove(label));
   bars = [];
+  labels = [];
 
   if (!props.data || props.data.length === 0) return;
 
   props.data.forEach((rocket: RocketData, index) => {
     const x = index * barSpacing - ((props.data.length - 1) * barSpacing) / 2;
 
+    // Manejar diferentes formatos de altura
+    const heightValue =
+      typeof rocket.height === "object" ? rocket.height.meters : rocket.height;
+
+    // Manejar diferentes formatos de masa
+    const massValue =
+      typeof rocket.mass === "object" ? rocket.mass.kg : rocket.mass;
+
     // Escalas ajustadas para mejor visualización
-    const heightScale = Math.min(rocket.height / 70, 1);
-    const massScale = Math.min(rocket.mass / 1400000, 1);
+    const heightScale = Math.min(heightValue / 70, 1);
+    const massScale = Math.min(massValue / 1400000, 1);
 
     const heightBar = createBar(
       heightScale * maxBarHeight,
@@ -153,7 +164,7 @@ function createScene() {
       0x00fff7,
       { x, y: (heightScale * maxBarHeight) / 2, z: -1.5 },
       rocket.name,
-      `${rocket.height.toLocaleString()}m`
+      `${heightValue.toLocaleString()}m`
     );
 
     const massBar = createBar(
@@ -163,7 +174,7 @@ function createScene() {
       0x00c3ff,
       { x, y: (massScale * maxBarHeight) / 2, z: 1.5 },
       rocket.name,
-      `${rocket.mass.toLocaleString()}kg`
+      `${massValue.toLocaleString()}kg`
     );
 
     scene.add(heightBar, massBar);
@@ -172,6 +183,7 @@ function createScene() {
     // Etiquetas más visibles
     const label = createTextLabel(rocket.name, new THREE.Vector3(x, -2.5, 0));
     scene.add(label);
+    labels.push(label); // Guardar referencia a la etiqueta
   });
 }
 
