@@ -19,24 +19,38 @@
 
     <!-- Sección superior: Estadísticas y filtros -->
     <div class="dashboard-header">
-      <div class="filter-panel glow-box">
-        <div class="filter-header">
-          <span class="filter-icon">🗓️</span>
-          <h3>MISSION TIMELINE</h3>
-        </div>
-        <div class="slider-container">
-          <input
-            type="range"
-            min="2006"
-            max="2025"
-            v-model="selectedYear"
-            class="timeline-slider"
-          />
-          <div class="slider-labels">
-            <span>2006</span>
-            <span class="current-year">{{ selectedYear || "ALL" }}</span>
-            <span>2025</span>
+      <!-- Contenedor unificado para filtro y gráfico -->
+      <div class="unified-filter-chart">
+        <!-- Panel de filtro de tiempo -->
+        <div class="filter-panel glow-box">
+          <div class="filter-header">
+            <span class="filter-icon">🗓️</span>
+            <h3>MISSION TIMELINE</h3>
           </div>
+          <div class="slider-container">
+            <input
+              type="range"
+              min="2006"
+              max="2025"
+              v-model="selectedYear"
+              class="timeline-slider"
+            />
+            <div class="slider-labels">
+              <span>2006</span>
+              <span class="current-year">{{ selectedYear || "ALL" }}</span>
+              <span>2025</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico de éxito/failure -->
+        <div class="chart-container glow-box">
+          <SuccessPie
+            v-if="data"
+            :success="data.successful_launches"
+            :failure="data.failed_launches"
+          />
+          <div class="chart-label">SUCCESS VS FAILED LAUNCHES</div>
         </div>
       </div>
 
@@ -56,18 +70,6 @@
 
     <!-- Sección principal: Paneles de datos -->
     <div class="dashboard-main">
-      <!-- Columna izquierda: Gráficos de lanzamientos -->
-      <div class="charts-column">
-        <div class="chart-container glow-box">
-          <SuccessPie
-            v-if="data"
-            :success="data.successful_launches"
-            :failure="data.failed_launches"
-          />
-          <div class="chart-label">SUCCESS VS FAILED LAUNCHES</div>
-        </div>
-      </div>
-
       <!-- Columna central: Visualización de cohetes -->
       <div class="rockets-column">
         <div class="rockets-panel glow-box">
@@ -252,19 +254,45 @@ onMounted(async () => {
 
 .dashboard-header {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1.5fr 2fr; /* Ajustado para nuevo layout */
   gap: 24px;
   margin-bottom: 24px;
 }
 
+.unified-filter-chart {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Dos columnas iguales */
+  gap: 24px;
+}
+
+.filter-panel {
+  background: rgba(16, 22, 58, 0.6);
+  border: 1px solid rgba(0, 231, 255, 0.3);
+  border-radius: 14px;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-container {
+  background: rgba(16, 22, 58, 0.5);
+  border-radius: 14px;
+  border: 1px solid rgba(0, 231, 255, 0.2);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .dashboard-main {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1.5fr;
+  grid-template-columns: 1.5fr 1.5fr; /* Dos columnas iguales */
   gap: 24px;
   height: 65vh;
 }
 
-.charts-column,
 .rockets-column,
 .starlink-column {
   display: flex;
@@ -288,15 +316,6 @@ onMounted(async () => {
   animation: float 3s ease-in-out infinite;
 }
 
-.filter-panel {
-  background: rgba(16, 22, 58, 0.6);
-  border: 1px solid rgba(0, 231, 255, 0.3);
-  border-radius: 14px;
-  padding: 20px;
-  backdrop-filter: blur(6px);
-  height: 100%;
-}
-
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -318,7 +337,6 @@ onMounted(async () => {
   box-shadow: 0 6px 20px rgba(0, 231, 255, 0.25);
 }
 
-.chart-container,
 .rockets-panel,
 .globe-panel {
   background: rgba(16, 22, 58, 0.5);
@@ -548,21 +566,26 @@ onMounted(async () => {
 
 /* Responsive */
 @media (max-width: 1200px) {
+  .dashboard-header {
+    grid-template-columns: 1fr;
+  }
+
+  .unified-filter-chart {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
   .dashboard-main {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
     height: auto;
   }
 
-  .charts-column,
   .rockets-column,
   .starlink-column {
     height: 500px;
     margin-bottom: 20px;
-  }
-
-  .dashboard-header {
-    grid-template-columns: 1fr;
   }
 
   /* Ajustar altura del globo y gráfico 3D en móvil */
