@@ -10,10 +10,11 @@ import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 interface StarlinkSatellite {
   id: string;
   name: string;
-  latitude: number | null;
   longitude: number | null;
-  altitude_km: number | null;
+  latitude: number | null;
+  altitude_km: number; // Cambiado a number (no nullable)
   inclination_deg: number;
+  velocity_kms?: number;
 }
 
 const props = defineProps<{
@@ -198,7 +199,7 @@ function createSatellites() {
     if (sat.inclination_deg <= 5) {
       // Satélites geoestacionarios
       const orbitAngle = (index / props.satellites.length) * Math.PI * 2;
-      const altitude = sat.altitude_km || 35786;
+      const altitude = sat.altitude_km;
       const orbitRadius = 1 + altitude / 6371;
       position = new THREE.Vector3(
         Math.cos(orbitAngle) * orbitRadius,
@@ -226,7 +227,7 @@ function createSatellites() {
     // Guardar datos para filtrado
     satellite.userData = {
       inclination: sat.inclination_deg,
-      altitude: sat.altitude_km || 550,
+      altitude: sat.altitude_km,
       isDemo: isDemo,
     };
 
@@ -242,7 +243,7 @@ function generateSatellitePosition(
   index: number
 ): THREE.Vector3 {
   const inclination = sat.inclination_deg;
-  const altitude = sat.altitude_km || 550;
+  const altitude = sat.altitude_km;
   const altitudeNorm = altitude / 6371;
   const orbitAngle = (index / props.satellites.length) * Math.PI * 2;
 

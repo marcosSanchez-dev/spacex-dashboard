@@ -25,16 +25,16 @@ export function useSpaceX() {
   };
 
   const fetchRockets = async () => {
-    const data = await fetchData<any[]>("/api/rockets");
+    const data = await fetchData<{ data: any[] }>("/api/rockets");
     if (data) {
-      rockets.value = data;
+      rockets.value = data.data; // Extraer array de datos
     }
   };
 
   const fetchStarlink = async () => {
-    const data = await fetchData<any[]>("/api/starlink");
+    const data = await fetchData<{ data: any[] }>("/api/starlink");
     if (data) {
-      starlink.value = data;
+      starlink.value = data.data; // Extraer array de datos
     }
   };
 

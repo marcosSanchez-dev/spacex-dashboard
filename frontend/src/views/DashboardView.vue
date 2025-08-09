@@ -173,6 +173,11 @@ const filteredRockets = computed(() => {
     }));
 });
 
+// Computed para cohetes activos
+const activeRockets = computed(() => {
+  return rockets.value?.filter((r) => r.active).length || 0;
+});
+
 // Tarjetas KPI
 const kpiCards = computed(() => {
   const totalLaunches = data.value?.total_launches || 0;
@@ -182,13 +187,12 @@ const kpiCards = computed(() => {
   const successfulLaunches = data.value?.successful_launches || 0;
   const failedLaunches = data.value?.failed_launches || 0;
   const starlinkCount = starlink.value.length;
-  const activeRockets = rockets.value?.filter((r) => r.active).length || 0;
 
   return [
     { icon: "📊", title: "TOTAL LAUNCHES", value: totalLaunches },
     { icon: "🛰️", title: "STARLINK SATELLITES", value: starlinkCount },
     { icon: "✅", title: "SUCCESS RATE", value: successRate, unit: "%" },
-    { icon: "🚀", title: "ACTIVE ROCKETS", value: activeRockets },
+    { icon: "🚀", title: "ACTIVE ROCKETS", value: activeRockets.value },
   ];
 });
 
