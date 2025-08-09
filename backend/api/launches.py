@@ -1,33 +1,47 @@
-from fastapi import APIRouter, Query
-import requests
+from fastapi import APIRouter, Query, HTTPException
+from services.spacex_service import get_spacex_data
+from datetime import datetime
 
 router = APIRouter()
 
-@router.get("/api/launches")
-def get_launches(year: int = Query(default=None)):
+@router.get("/launches")
+async def get_launches(
+    year: int = Query(None, description="Filtrar por año de lanzamiento"),
+    limit: int = Query(50, ge=1, le=100, description="Límite de resultados"),
+    page: int = Query(1, ge=1, description="Número de página")
+):
     try:
-        response = requests.get("https://api.spacexdata.com/v4/launches")
-        response.raise_for_status()
-        launches = response.json()
-
+        launches = await get_spacex_data("launches")
+        
+        # Filtrar por año
         if year:
             launches = [
-                l for l in launches
-                if l.get("date_utc", "").startswith(str(year))
+                l for l in launches 
+                if l.get("date_utc") and datetime.strptime(l["date_utc"], '%Y-%m-%dT%H:%M:%S.%fZ').year == year
             ]
-
+        
+        # Paginación
+        start = (page - 1) * limit
+        paginated = launches[start:start + limit]
+        
+        # Estadísticas
         total = len(launches)
         successful = sum(1 for l in launches if l.get("success") is True)
-        failed = sum(1 for l in launches if l.get("success") is False)
-        success_rate = round(successful / total * 100, 2) if total > 0 else 0
-
-        summary = {
-            "total_launches": total,
-            "successful_launches": successful,
-            "failed_launches": failed,
-            "success_rate_percent": success_rate,
+        
+        return {
+            "data": paginated,
+            "pagination": {
+                "total": total,
+                "page": page,
+                "per_page": limit,
+                "total_pages": (total + limit - 1) // limit
+            },
+            "stats": {
+                "success_rate": round(successful / total * 100, 2) if total > 0 else 0
+            }
         }
-
-        return summary
-    except requests.exceptions.RequestException:
-        return {"error": "No se pudo conectar con la API de SpaceX"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en lanzamientos: {str(e)}"
+        )
