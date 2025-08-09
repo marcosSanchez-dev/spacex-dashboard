@@ -242,11 +242,11 @@ onMounted(async () => {
 .logo-container {
   display: flex;
   justify-content: center;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 }
 
 .glow-logo {
-  max-width: 320px;
+  max-width: 280px; /* Tamaño reducido */
   height: auto;
   filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.75))
     drop-shadow(0 0 25px rgba(0, 150, 255, 0.5));
@@ -261,29 +261,32 @@ onMounted(async () => {
     #0b1d34 100%
   );
   color: #d0f0ff;
-  padding: 24px;
-  min-height: 100vh;
+  padding: 15px; /* Padding reducido */
+  height: 100vh; /* Altura fija del viewport */
+  overflow: hidden; /* Elimina scroll global */
   font-family: "Orbitron", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-header {
   display: grid;
-  grid-template-columns: 1.5fr 2fr; /* Ajustado para nuevo layout */
-  gap: 24px;
-  margin-bottom: 24px;
+  grid-template-columns: 1.5fr 2fr;
+  gap: 15px; /* Gap reducido */
+  margin-bottom: 15px; /* Margen reducido */
 }
 
 .unified-filter-chart {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Dos columnas iguales */
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px; /* Gap reducido */
 }
 
 .filter-panel {
   background: rgba(16, 22, 58, 0.6);
   border: 1px solid rgba(0, 231, 255, 0.3);
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 12px; /* Border radius reducido */
+  padding: 15px; /* Padding reducido */
   backdrop-filter: blur(6px);
   height: 100%;
   display: flex;
@@ -292,9 +295,9 @@ onMounted(async () => {
 
 .chart-container {
   background: rgba(16, 22, 58, 0.5);
-  border-radius: 14px;
+  border-radius: 12px; /* Border radius reducido */
   border: 1px solid rgba(0, 231, 255, 0.2);
-  padding: 24px;
+  padding: 15px; /* Padding reducido */
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -302,46 +305,31 @@ onMounted(async () => {
 
 .dashboard-main {
   display: grid;
-  grid-template-columns: 1.5fr 1.5fr; /* Dos columnas iguales */
-  gap: 24px;
-  height: 65vh;
+  grid-template-columns: 1.5fr 1.5fr;
+  gap: 15px; /* Gap reducido */
+  flex: 1; /* Ocupa espacio restante */
+  min-height: 0; /* Necesario para contenedores flex */
 }
 
 .rockets-column,
 .starlink-column {
   display: flex;
   flex-direction: column;
-}
-
-.glow-title {
-  text-align: center;
-  font-size: 2.7rem;
-  margin-bottom: 30px;
-  text-shadow: 0 0 12px rgba(0, 255, 255, 0.75), 0 0 25px rgba(0, 150, 255, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  letter-spacing: 2px;
-  color: #00e6ff;
-}
-
-.rocket-icon {
-  animation: float 3s ease-in-out infinite;
+  min-height: 0; /* Permite compresión */
 }
 
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 12px; /* Gap reducido */
   height: 100%;
 }
 
 .kpi-card {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(0, 231, 255, 0.15);
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 12px; /* Border radius reducido */
+  padding: 15px; /* Padding reducido */
   box-shadow: 0 0 15px rgba(0, 150, 255, 0.1);
   transition: all 0.3s ease;
 }
@@ -354,28 +342,30 @@ onMounted(async () => {
 .rockets-panel,
 .globe-panel {
   background: rgba(16, 22, 58, 0.5);
-  border-radius: 14px;
+  border-radius: 12px; /* Border radius reducido */
   border: 1px solid rgba(0, 231, 255, 0.2);
-  padding: 24px;
+  padding: 15px; /* Padding reducido */
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Permite compresión */
 }
 
 .panel-title {
   color: #80deea;
   margin-top: 0;
-  margin-bottom: 16px;
+  margin-bottom: 10px; /* Margen reducido */
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-size: 1rem; /* Tamaño reducido */
 }
 
 .chart-label {
-  margin-top: 15px;
+  margin-top: 10px; /* Margen reducido */
   text-align: center;
   color: #80deea;
-  font-size: 0.9rem;
+  font-size: 0.8rem; /* Tamaño reducido */
   letter-spacing: 1px;
   text-transform: uppercase;
 }
@@ -383,24 +373,24 @@ onMounted(async () => {
 .rocket-controls,
 .orbit-controls {
   margin-top: auto;
-  padding-top: 16px;
+  padding-top: 10px; /* Padding reducido */
 }
 
 .orbit-controls {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 8px; /* Gap reducido */
 }
 
 .orbit-controls button {
   background: rgba(0, 231, 255, 0.2);
   border: 1px solid rgba(0, 231, 255, 0.4);
   color: #d0f0ff;
-  padding: 8px 16px;
+  padding: 6px 12px; /* Padding reducido */
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
-  font-size: 0.8rem;
+  font-size: 0.7rem; /* Tamaño reducido */
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -413,20 +403,20 @@ onMounted(async () => {
 .search-box {
   background: rgba(10, 15, 40, 0.6);
   border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 16px;
-  padding: 12px;
-  margin-bottom: 15px;
+  border-radius: 14px; /* Border radius reducido */
+  padding: 10px; /* Padding reducido */
+  margin-bottom: 10px; /* Margen reducido */
   backdrop-filter: blur(6px);
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 15px;
-  border-radius: 10px;
+  padding: 8px 12px; /* Padding reducido */
+  border-radius: 8px; /* Border radius reducido */
   border: 1px solid rgba(0, 255, 255, 0.3);
   background: rgba(0, 0, 0, 0.4);
   color: white;
-  font-size: 1rem;
+  font-size: 0.9rem; /* Tamaño reducido */
   outline: none;
   font-family: "Orbitron", sans-serif;
   letter-spacing: 1px;
@@ -439,24 +429,28 @@ onMounted(async () => {
 
 /* Contenedor para el gráfico 3D */
 .chart-3d-container {
-  height: 400px;
+  height: 100%; /* Altura flexible */
+  min-height: 250px; /* Altura mínima */
   width: 100%;
-  border-radius: 12px;
+  border-radius: 10px; /* Border radius reducido */
   overflow: hidden;
   background: rgba(5, 10, 30, 0.5);
   border: 1px solid rgba(0, 231, 255, 0.2);
-  margin-bottom: 15px;
+  margin-bottom: 10px; /* Margen reducido */
+  flex: 1; /* Ocupa espacio restante */
 }
 
 /* Contenedor para el globo */
 .globe-container {
   width: 100%;
-  height: 400px;
-  border-radius: 16px;
+  height: 100%; /* Altura flexible */
+  min-height: 250px; /* Altura mínima */
+  border-radius: 14px; /* Border radius reducido */
   overflow: hidden;
-  box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.3); /* Sombra reducida */
   background: #000814;
-  margin-bottom: 15px;
+  margin-bottom: 10px; /* Margen reducido */
+  flex: 1; /* Ocupa espacio restante */
 }
 
 /* Animaciones y efectos restantes se mantienen igual que antes */
@@ -473,8 +467,8 @@ onMounted(async () => {
 .timeline-slider {
   -webkit-appearance: none;
   width: 100%;
-  height: 10px;
-  border-radius: 5px;
+  height: 8px; /* Altura reducida */
+  border-radius: 4px; /* Border radius reducido */
   background: linear-gradient(to right, #00e6ff, #9d4edd);
   outline: none;
   transition: background 0.3s ease;
@@ -482,12 +476,12 @@ onMounted(async () => {
 
 .timeline-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 18px; /* Tamaño reducido */
+  height: 18px; /* Tamaño reducido */
   border-radius: 50%;
   background: #9d4edd;
   border: 2px solid #fff;
-  box-shadow: 0 0 12px #9d4edd;
+  box-shadow: 0 0 10px #9d4edd; /* Sombra reducida */
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -499,28 +493,28 @@ onMounted(async () => {
 .slider-labels {
   display: flex;
   justify-content: space-between;
-  margin-top: 10px;
-  font-size: 0.85rem;
+  margin-top: 8px; /* Margen reducido */
+  font-size: 0.75rem; /* Tamaño reducido */
   color: #a0c4ff;
 }
 
 .current-year {
   color: #9d4edd;
   font-weight: bold;
-  text-shadow: 0 0 8px rgba(157, 78, 221, 0.6);
+  text-shadow: 0 0 6px rgba(157, 78, 221, 0.6); /* Sombra reducida */
 }
 
 /* Estilos para loading y error se mantienen igual */
 .loading-indicator {
   text-align: center;
-  margin: 30px auto;
+  margin: 20px auto; /* Margen reducido */
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(0, 231, 255, 0.2);
-  border-top: 4px solid #00e6ff;
+  width: 40px; /* Tamaño reducido */
+  height: 40px; /* Tamaño reducido */
+  border: 3px solid rgba(0, 231, 255, 0.2); /* Borde reducido */
+  border-top: 3px solid #00e6ff; /* Borde reducido */
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: auto;
@@ -539,14 +533,15 @@ onMounted(async () => {
   background: rgba(255, 88, 88, 0.15);
   border: 1px solid rgba(255, 100, 100, 0.3);
   border-radius: 8px;
-  padding: 12px 20px;
-  margin: 15px auto;
-  max-width: 500px;
+  padding: 10px 15px; /* Padding reducido */
+  margin: 10px auto; /* Margen reducido */
+  max-width: 450px; /* Ancho reducido */
   display: flex;
   justify-content: space-between;
   align-items: center;
   backdrop-filter: blur(5px);
-  box-shadow: 0 0 15px rgba(255, 0, 0, 0.2);
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.2); /* Sombra reducida */
+  font-size: 0.9rem; /* Tamaño reducido */
 }
 
 .error-toast button {
@@ -554,7 +549,7 @@ onMounted(async () => {
   border: none;
   color: #fff;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.1rem; /* Tamaño reducido */
 }
 
 .fade-enter-active,
@@ -580,14 +575,20 @@ onMounted(async () => {
 
 /* Responsive */
 @media (max-width: 1200px) {
+  .dashboard-container {
+    height: auto; /* Permite scroll en móviles */
+    min-height: 100vh;
+    overflow: auto;
+  }
+
   .dashboard-header {
     grid-template-columns: 1fr;
   }
 
   .unified-filter-chart {
     grid-template-columns: 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 15px;
+    margin-bottom: 15px;
   }
 
   .dashboard-main {
@@ -598,14 +599,22 @@ onMounted(async () => {
 
   .rockets-column,
   .starlink-column {
-    height: 500px;
-    margin-bottom: 20px;
+    height: 450px; /* Altura reducida */
+    margin-bottom: 15px;
   }
 
   /* Ajustar altura del globo y gráfico 3D en móvil */
   .chart-3d-container,
   .globe-container {
-    height: 350px;
+    height: 320px; /* Altura reducida */
+  }
+}
+
+/* Pantallas muy grandes */
+@media (min-height: 1000px) {
+  .chart-3d-container,
+  .globe-container {
+    min-height: 350px;
   }
 }
 </style>
