@@ -103,51 +103,43 @@ let earth: THREE.Mesh;
 let satelliteGroup: THREE.Group;
 const satObjects: THREE.Mesh[] = [];
 
+// Misma función de generación de satélites demo que en DashboardView.vue
+function generateDemoSatellites(count = 150): StarlinkSatellite[] {
+  const fake = [];
+  for (let i = 0; i < count; i++) {
+    const inclination = i % 3 === 0 ? 90 : i % 3 === 1 ? 0 : 53;
+    fake.push({
+      id: `demo-${i}`,
+      name: `DemoSat-${i}`,
+      latitude: 0, // No se usa
+      longitude: 0, // No se usa
+      altitude_km: 500 + Math.random() * 300, // entre 500km y 800km
+      inclination_deg: inclination,
+    });
+  }
+  return fake;
+}
+
 onMounted(async () => {
   const response = await fetchData<{ data: StarlinkSatellite[] }>(
     "/api/starlink"
   );
   satellites.value = response?.data || [];
 
-  // Añadir satélites de demostración si hay pocos en ciertas categorías
-  if (!hasEnoughPolarSats(satellites.value)) {
-    addDemoSatellites("polar", 20);
-  }
-
-  if (!hasEnoughGeoSats(satellites.value)) {
-    addDemoSatellites("geo", 15);
+  // Usar siempre los mismos satélites demo que en DashboardView
+  if (satellites.value.length === 0) {
+    satellites.value = generateDemoSatellites(150);
+  } else {
+    // Combinar datos reales con demo para mantener consistencia visual
+    const demoCount = Math.max(0, 150 - satellites.value.length);
+    satellites.value = [
+      ...satellites.value,
+      ...generateDemoSatellites(demoCount),
+    ];
   }
 
   initGlobe();
 });
-
-// Verificar si hay suficientes satélites polares
-function hasEnoughPolarSats(sats: StarlinkSatellite[]): boolean {
-  return sats.filter((sat) => sat.inclination_deg >= 85).length > 5;
-}
-
-// Verificar si hay suficientes satélites geoestacionarios
-function hasEnoughGeoSats(sats: StarlinkSatellite[]): boolean {
-  return sats.filter((sat) => sat.inclination_deg <= 5).length > 5;
-}
-
-// Añadir satélites de demostración
-function addDemoSatellites(type: "polar" | "geo", count: number) {
-  const baseInclination = type === "polar" ? 85 : 0;
-
-  for (let i = 0; i < count; i++) {
-    const inclination = baseInclination + Math.random() * 5;
-
-    satellites.value.push({
-      id: `demo-${type}-${i}`,
-      name: `DEMO ${type.toUpperCase()} ${i + 1}`,
-      latitude: null,
-      longitude: null,
-      altitude_km: type === "geo" ? 35786 : 550,
-      inclination_deg: inclination,
-    });
-  }
-}
 
 // Satélites visibles según filtro
 const visibleSatellites = computed(() => {
