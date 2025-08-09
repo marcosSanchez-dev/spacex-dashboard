@@ -14,6 +14,22 @@
       </div>
     </div>
 
+    <!-- Loader flotante -->
+    <transition name="fade">
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Initializing satellite network...</p>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="slide-fade">
+      <div v-if="error" class="error-toast">
+        ⚠️ {{ error }} <button @click="error = ''">✕</button>
+      </div>
+    </transition>
+
     <div class="dashboard-content">
       <!-- Controles de órbita -->
       <div class="orbit-controls glow-box">

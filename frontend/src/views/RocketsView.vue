@@ -14,6 +14,22 @@
       </div>
     </div>
 
+    <!-- Loader flotante -->
+    <transition name="fade">
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Loading rockets data...</p>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="slide-fade">
+      <div v-if="error" class="error-toast">
+        ⚠️ {{ error }} <button @click="error = ''">✕</button>
+      </div>
+    </transition>
+
     <div class="dashboard-content">
       <!-- Filtro de año -->
       <div class="filter-panel glow-box">
