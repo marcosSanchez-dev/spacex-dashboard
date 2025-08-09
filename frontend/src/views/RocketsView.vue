@@ -87,7 +87,8 @@ const selectedYear = ref<number | null>(null);
 const { fetchData, isLoading, error } = useSpaceX();
 
 onMounted(async () => {
-  rockets.value = (await fetchData("/api/rockets")) || [];
+  const response = await fetchData<{ data: any[] }>("/api/rockets");
+  rockets.value = response?.data || [];
 });
 
 const filteredRockets = computed(() => {

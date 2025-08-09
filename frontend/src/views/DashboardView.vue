@@ -49,9 +49,9 @@
         <!-- Gráfico de éxito/failure -->
         <div class="chart-container glow-box">
           <SuccessPie
-            v-if="data"
-            :success="data.successful_launches"
-            :failure="data.failed_launches"
+            v-if="dashboardData"
+            :success="dashboardData.launches.successful"
+            :failure="failedLaunches"
           />
           <div class="chart-label">SUCCESS VS FAILED LAUNCHES</div>
         </div>
@@ -119,7 +119,7 @@ import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
 import StarlinkGlobe from "../components/StarlinkGlobe.vue";
 
 // Datos del dashboard
-const data = ref<any>(null);
+const dashboardData = ref<any>(null);
 const selectedYear = ref<number | null>(null);
 const rocketFilter = ref("");
 const rocketYearFilter = ref(new Date().getFullYear());
@@ -136,6 +136,34 @@ const {
   fetchStarlink,
 } = useSpaceX();
 
+// Calcular lanzamientos fallidos
+const failedLaunches = computed(() => {
+  if (!dashboardData.value) return 0;
+  return (
+    dashboardData.value.launches.total -
+    dashboardData.value.launches.successful -
+    dashboardData.value.launches.upcoming
+  );
+});
+
+// Calcular tasa de éxito
+const successRate = computed(() => {
+  if (
+    !dashboardData.value ||
+    dashboardData.value.launches.total === 0 ||
+    dashboardData.value.launches.successful === 0
+  ) {
+    return 0;
+  }
+
+  const terminatedLaunches =
+    dashboardData.value.launches.total - dashboardData.value.launches.upcoming;
+
+  return Math.round(
+    (dashboardData.value.launches.successful / terminatedLaunches) * 100
+  );
+});
+
 const satellitesToUse = computed(() =>
   starlink.value.length > 0 ? starlink.value : generateDemoSatellites()
 );
@@ -147,9 +175,9 @@ function generateDemoSatellites(count = 150) {
     fake.push({
       id: `demo-${i}`,
       name: `DemoSat-${i}`,
-      latitude: 0, // No se usa
-      longitude: 0, // No se usa
-      altitude_km: 500 + Math.random() * 300, // entre 500km y 800km
+      latitude: 0,
+      longitude: 0,
+      altitude_km: 500 + Math.random() * 300,
       inclination_deg: inclination,
     });
   }
@@ -165,7 +193,7 @@ const filteredRockets = computed(() => {
       r.name.toLowerCase().includes(rocketFilter.value.toLowerCase())
     )
     .map((r) => ({
-      id: r.id || r.name, // usa name como fallback
+      id: r.id || r.name,
       name: r.name,
       height: r.height,
       mass: r.mass,
@@ -178,36 +206,24 @@ const activeRockets = computed(() => {
   return rockets.value?.filter((r) => r.active).length || 0;
 });
 
-// Tarjetas KPI
+// Tarjetas KPI con datos corregidos
 const kpiCards = computed(() => {
-  const totalLaunches = data.value?.total_launches || 0;
-  const successRate = data.value
-    ? Math.floor(data.value.success_rate_percent)
-    : 0;
-  const successfulLaunches = data.value?.successful_launches || 0;
-  const failedLaunches = data.value?.failed_launches || 0;
-  const starlinkCount = starlink.value.length;
+  const totalLaunches = dashboardData.value?.launches.total || 0;
+  const starlinkCount = dashboardData.value?.starlink.deployed || 0;
 
   return [
     { icon: "📊", title: "TOTAL LAUNCHES", value: totalLaunches },
     { icon: "🛰️", title: "STARLINK SATELLITES", value: starlinkCount },
-    { icon: "✅", title: "SUCCESS RATE", value: successRate, unit: "%" },
+    { icon: "✅", title: "SUCCESS RATE", value: successRate.value, unit: "%" },
     { icon: "🚀", title: "ACTIVE ROCKETS", value: activeRockets.value },
   ];
 });
 
-watch(selectedYear, async () => {
-  const query = selectedYear.value ? `?year=${selectedYear.value}` : "";
-  data.value = await fetchData(`/api/launches${query}`);
-});
-
-watch(starlink, (newVal) => {
-  console.log("🛰️ starlink data enviada a <StarlinkGlobe>:", newVal);
-});
-
 onMounted(async () => {
-  data.value = await fetchData("/api/launches");
+  // Obtener datos específicos del dashboard
+  dashboardData.value = await fetchData("/api/dashboard");
 
+  // Obtener datos adicionales
   if (!rockets.value || rockets.value.length === 0) {
     await fetchRockets();
   }

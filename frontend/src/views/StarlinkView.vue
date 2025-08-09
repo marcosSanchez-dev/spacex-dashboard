@@ -104,8 +104,10 @@ let satelliteGroup: THREE.Group;
 const satObjects: THREE.Mesh[] = [];
 
 onMounted(async () => {
-  const apiData = await fetchData<StarlinkSatellite[]>("/api/starlink");
-  satellites.value = apiData || [];
+  const response = await fetchData<{ data: StarlinkSatellite[] }>(
+    "/api/starlink"
+  );
+  satellites.value = response?.data || [];
 
   // Añadir satélites de demostración si hay pocos en ciertas categorías
   if (!hasEnoughPolarSats(satellites.value)) {
