@@ -73,6 +73,14 @@
 
     <!-- Sección principal: Paneles de datos -->
     <div class="dashboard-main">
+      <!-- Nueva columna: Timeline de lanzamientos -->
+      <div class="timeline-column">
+        <div class="timeline-panel glow-box">
+          <h3 class="panel-title">📅 LAUNCH TIMELINE</h3>
+          <LaunchTimeline />
+        </div>
+      </div>
+
       <!-- Columna central: Visualización de cohetes -->
       <div class="rockets-column">
         <RouterLink to="/rockets" class="rockets-panel glow-box link-card">
@@ -117,6 +125,7 @@ import SuccessPie from "../components/SuccessPie.vue";
 import AnimatedCounter from "../components/AnimatedCounter.vue";
 import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
 import StarlinkGlobe from "../components/StarlinkGlobe.vue";
+import LaunchTimeline from "../components/LaunchTimeline.vue"; // Nuevo componente importado
 
 // Datos del dashboard
 const dashboardData = ref<any>(null);
@@ -349,12 +358,13 @@ onMounted(async () => {
 
 .dashboard-main {
   display: grid;
-  grid-template-columns: 1.5fr 1.5fr;
+  grid-template-columns: 1.5fr 1.5fr 1.5fr; /* Tres columnas iguales */
   gap: 15px;
   flex: 1;
   min-height: 0;
 }
 
+.timeline-column,
 .rockets-column,
 .starlink-column {
   display: flex;
@@ -464,7 +474,8 @@ onMounted(async () => {
 }
 
 .rockets-panel,
-.globe-panel {
+.globe-panel,
+.timeline-panel {
   background: rgba(16, 22, 58, 0.5);
   border-radius: 12px;
   border: 1px solid rgba(0, 231, 255, 0.2);
@@ -473,6 +484,11 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.timeline-panel {
+  display: flex;
+  flex-direction: column;
 }
 
 .panel-title {
@@ -642,10 +658,11 @@ onMounted(async () => {
 
   .dashboard-main {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     height: auto;
   }
 
+  .timeline-column,
   .rockets-column,
   .starlink-column {
     height: 450px;
