@@ -4,10 +4,13 @@
       <img src="/img/logo.png" alt="SpaceX Mission Control" class="glow-logo" />
     </div>
 
+    <!-- Loader flotante -->
     <transition name="fade">
-      <div v-if="isLoading" class="loading-indicator">
-        <div class="spinner"></div>
-        <p>Loading space data...</p>
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="loading-content">
+          <div class="spinner"></div>
+          <p>Loading space data...</p>
+        </div>
       </div>
     </transition>
 
@@ -75,39 +78,12 @@
         <RouterLink to="/rockets" class="rockets-panel glow-box link-card">
           <h3 class="panel-title">🚀 ROCKET FLEET COMPARISON</h3>
 
-          <!-- Buscador integrado -->
-          <div class="search-box">
-            <input
-              v-model="rocketFilter"
-              type="text"
-              placeholder="Search rocket..."
-              class="search-input"
-              @click.stop
-            />
-          </div>
-
-          <!-- Contenedor para el gráfico 3D -->
+          <!-- Contenedor para el gráfico 3D (ahora más grande) -->
           <div class="chart-3d-container">
             <Rocket3DBarChart
               :data="filteredRockets"
               :year="rocketYearFilter"
             />
-          </div>
-
-          <div class="rocket-controls">
-            <input
-              type="range"
-              min="2015"
-              max="2025"
-              v-model="rocketYearFilter"
-              class="timeline-slider"
-              @click.stop
-            />
-            <div class="slider-labels">
-              <span>2015</span>
-              <span class="current-year">{{ rocketYearFilter }}</span>
-              <span>2025</span>
-            </div>
           </div>
 
           <div class="click-hint">Click anywhere to explore rockets →</div>
@@ -118,21 +94,12 @@
       <div class="starlink-column">
         <RouterLink to="/starlink" class="globe-panel glow-box link-card">
           <h3 class="panel-title">🛰️ STARLINK NETWORK</h3>
-          <!-- Contenedor para el globo -->
+          <!-- Contenedor para el globo (ahora más grande) -->
           <div class="globe-container">
             <StarlinkGlobe
               :satellites="satellitesToUse"
               :highlightOrbit="activeOrbitType"
             />
-          </div>
-          <div class="orbit-controls">
-            <button @click.prevent="activeOrbitType = 'polar'">
-              POLAR ORBITS
-            </button>
-            <button @click.prevent="activeOrbitType = 'geostationary'">
-              GEOSTATIONARY
-            </button>
-            <button @click.prevent="activeOrbitType = null">SHOW ALL</button>
           </div>
 
           <div class="click-hint">Click anywhere to explore satellites →</div>
@@ -276,6 +243,42 @@ onMounted(async () => {
   font-family: "Orbitron", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   flex-direction: column;
+  position: relative; /* Para el loader absoluto */
+}
+
+/* Loader flotante */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 14, 41, 0.8);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-overlay .spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(0, 231, 255, 0.3);
+  border-top: 5px solid #00e6ff;
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+  margin: 0 auto 20px;
+}
+
+.loading-overlay p {
+  font-size: 1.2rem;
+  color: #00e6ff;
+  text-shadow: 0 0 10px rgba(0, 231, 255, 0.7);
 }
 
 .dashboard-header {
@@ -348,6 +351,7 @@ onMounted(async () => {
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   cursor: pointer;
+  height: 100%; /* Asegurar que ocupe todo el espacio */
 }
 
 .link-card::before {
@@ -390,6 +394,7 @@ onMounted(async () => {
   opacity: 0;
   transform: translateX(10px);
   transition: all 0.3s ease;
+  z-index: 2;
 }
 
 .link-card:hover .click-hint {
@@ -459,6 +464,7 @@ onMounted(async () => {
   letter-spacing: 1px;
   font-size: 1rem;
   transition: color 0.3s ease;
+  z-index: 2; /* Asegurar que el título esté por encima del overlay */
 }
 
 .link-card:hover .panel-title {
@@ -466,86 +472,7 @@ onMounted(async () => {
   text-shadow: 0 0 10px rgba(0, 231, 255, 0.7);
 }
 
-.chart-label {
-  margin-top: 10px;
-  text-align: center;
-  color: #80deea;
-  font-size: 0.8rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  transition: color 0.3s ease;
-}
-
-.link-card:hover .chart-label {
-  color: #ffffff;
-}
-
-.rocket-controls,
-.orbit-controls {
-  margin-top: auto;
-  padding-top: 10px;
-}
-
-.orbit-controls {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  position: relative;
-  z-index: 2;
-}
-
-.orbit-controls button {
-  background: rgba(0, 231, 255, 0.2);
-  border: 1px solid rgba(0, 231, 255, 0.4);
-  color: #d0f0ff;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  position: relative;
-  z-index: 2;
-}
-
-.orbit-controls button:hover {
-  background: rgba(0, 231, 255, 0.3);
-  box-shadow: 0 0 10px rgba(0, 231, 255, 0.5);
-}
-
-.search-box {
-  background: rgba(10, 15, 40, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 14px;
-  padding: 10px;
-  margin-bottom: 10px;
-  backdrop-filter: blur(6px);
-  position: relative;
-  z-index: 2;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
-  font-size: 0.9rem;
-  outline: none;
-  font-family: "Orbitron", sans-serif;
-  letter-spacing: 1px;
-  position: relative;
-  z-index: 2;
-}
-
-.search-input:focus {
-  border-color: #00fff7;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-}
-
-/* Contenedor para el gráfico 3D */
+/* Contenedor para el gráfico 3D - ahora más grande */
 .chart-3d-container {
   height: 100%;
   min-height: 250px;
@@ -554,13 +481,12 @@ onMounted(async () => {
   overflow: hidden;
   background: rgba(5, 10, 30, 0.5);
   border: 1px solid rgba(0, 231, 255, 0.2);
-  margin-bottom: 10px;
   flex: 1;
   position: relative;
   z-index: 1;
 }
 
-/* Contenedor para el globo */
+/* Contenedor para el globo - ahora más grande */
 .globe-container {
   width: 100%;
   height: 100%;
@@ -569,7 +495,6 @@ onMounted(async () => {
   overflow: hidden;
   box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
   background: #000814;
-  margin-bottom: 10px;
   flex: 1;
   position: relative;
   z-index: 1;
@@ -631,30 +556,6 @@ onMounted(async () => {
 }
 
 /* Estilos para loading y error */
-.loading-indicator {
-  text-align: center;
-  margin: 20px auto;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(0, 231, 255, 0.2);
-  border-top: 3px solid #00e6ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: auto;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
 .error-toast {
   background: rgba(255, 88, 88, 0.15);
   border: 1px solid rgba(255, 100, 100, 0.3);
@@ -668,6 +569,8 @@ onMounted(async () => {
   backdrop-filter: blur(5px);
   box-shadow: 0 0 12px rgba(255, 0, 0, 0.2);
   font-size: 0.9rem;
+  position: relative;
+  z-index: 1001; /* Por encima del loader */
 }
 
 .error-toast button {
