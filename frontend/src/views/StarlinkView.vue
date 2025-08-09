@@ -1,26 +1,18 @@
 <template>
   <div class="starlink-view">
-    <div class="logo-container">
-      <img src="/img/logo.png" alt="SpaceX Mission Control" class="glow-logo" />
+    <div class="view-header">
+      <RouterLink to="/" class="back-button">
+        <span class="back-icon">←</span>
+        <span class="back-text">Dashboard</span>
+      </RouterLink>
+      <div class="logo-title">
+        <img
+          src="/img/logo.png"
+          alt="SpaceX Mission Control"
+          class="glow-logo"
+        />
+      </div>
     </div>
-
-    <h1 class="glow-title">🛰️ Starlink Network</h1>
-
-    <!-- Loader flotante -->
-    <transition name="fade">
-      <div v-if="isLoading" class="loading-overlay">
-        <div class="loading-content">
-          <div class="spinner"></div>
-          <p>Initializing satellite network...</p>
-        </div>
-      </div>
-    </transition>
-
-    <transition name="slide-fade">
-      <div v-if="error" class="error-toast">
-        ⚠️ {{ error }} <button @click="error = ''">✕</button>
-      </div>
-    </transition>
 
     <div class="dashboard-content">
       <!-- Controles de órbita -->
@@ -70,6 +62,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
+import { RouterLink } from "vue-router";
 
 interface StarlinkSatellite {
   id: string;
@@ -446,36 +439,60 @@ onUnmounted(() => {
   position: relative;
 }
 
-.logo-container {
+.view-header {
   display: flex;
-  justify-content: center;
-  margin-bottom: 15px;
+  align-items: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  background: rgba(16, 22, 58, 0.6);
+  border: 1px solid rgba(0, 231, 255, 0.3);
+  border-radius: 30px;
+  color: #d0f0ff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 15px rgba(0, 231, 255, 0.2);
+  z-index: 10;
+}
+
+.back-button:hover {
+  background: rgba(0, 231, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(0, 231, 255, 0.4);
+}
+
+.back-icon {
+  margin-right: 8px;
+  font-size: 1.2rem;
+}
+
+.logo-title {
+  margin: 0 auto;
+  text-align: center;
 }
 
 .glow-logo {
-  max-width: 280px;
+  max-width: 220px;
   height: auto;
   filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.75))
     drop-shadow(0 0 25px rgba(0, 150, 255, 0.5));
-  animation: float 3s ease-in-out infinite;
-}
-
-.glow-title {
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 30px;
-  text-shadow: 0 0 12px rgba(0, 255, 255, 0.75), 0 0 25px rgba(0, 150, 255, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  letter-spacing: 2px;
-  color: #00e6ff;
 }
 
 .dashboard-content {
   max-width: 1400px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
 }
 
 /* Loader flotante */
@@ -515,12 +532,14 @@ onUnmounted(() => {
 
 .globe-container {
   width: 100%;
-  height: 65vh;
+  height: 100%;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
   background: #000814;
   margin-top: 20px;
+  flex: 1;
+  min-height: 300px;
 }
 
 .orbit-controls {
@@ -686,9 +705,25 @@ onUnmounted(() => {
   .globe-container {
     height: 500px;
   }
+}
 
-  .glow-title {
-    font-size: 2rem;
+@media (max-width: 768px) {
+  .view-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .back-button {
+    position: static;
+    align-self: flex-start;
+  }
+
+  .back-text {
+    display: none;
+  }
+
+  .glow-logo {
+    max-width: 180px;
   }
 
   .toggle-group button {
