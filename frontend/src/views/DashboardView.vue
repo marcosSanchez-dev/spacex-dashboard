@@ -1,8 +1,8 @@
 <template>
   <div class="dashboard-container">
-    <h1 class="glow-title">
-      <span class="rocket-icon">🚀</span> SpaceX Mission Control
-    </h1>
+    <div class="logo-container">
+      <img src="/img/logo.png" alt="SpaceX Mission Control" class="glow-logo" />
+    </div>
 
     <transition name="fade">
       <div v-if="isLoading" class="loading-indicator">
@@ -239,6 +239,20 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.glow-logo {
+  max-width: 320px;
+  height: auto;
+  filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.75))
+    drop-shadow(0 0 25px rgba(0, 150, 255, 0.5));
+  animation: float 3s ease-in-out infinite;
+}
+
 .dashboard-container {
   background: radial-gradient(
     ellipse at center,
