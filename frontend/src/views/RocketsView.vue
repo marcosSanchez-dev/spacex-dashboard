@@ -241,6 +241,7 @@ const filteredRockets = computed(() => {
 }
 
 /* Contenedores */
+/* Contenedores */
 .timeline-container,
 .chart-container {
   background: rgba(16, 22, 58, 0.5);
@@ -253,13 +254,43 @@ const filteredRockets = computed(() => {
 }
 
 .timeline-container {
-  height: 300px;
-  display: flex;
+  /* antes: height: 300px; display:flex; */
+  min-height: 400px;
+  display: block;
 }
 
 .chart-container {
   flex: 1;
   min-height: 400px;
+}
+
+@media (min-width: 992px) {
+  .dashboard-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 25px;
+  }
+
+  .search-box {
+    grid-column: 1 / span 2;
+  }
+
+  .timeline-section {
+    grid-column: 1;
+    grid-row: 2;
+    height: 100%;
+  }
+  .rockets-section {
+    grid-column: 2;
+    grid-row: 2;
+    height: 100%;
+  }
+
+  .timeline-container {
+    /* ocupar toda la celda, con una base cómoda */
+    min-height: 440px;
+  }
 }
 
 /* Buscador */
