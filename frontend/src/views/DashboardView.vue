@@ -73,10 +73,17 @@
     <div class="dashboard-main">
       <!-- Nueva columna: Timeline de lanzamientos -->
       <div class="timeline-column">
-        <div class="timeline-panel glow-box">
+        <RouterLink to="/rockets" class="timeline-panel glow-box link-card">
+          <!-- Cambio aquí -->
           <h3 class="panel-title">📅 LAUNCH TIMELINE</h3>
-          <LaunchTimeline :key="'timeline-' + resizeKey" />
-        </div>
+          <div class="timeline-container">
+            <!-- Contenedor añadido -->
+            <LaunchTimeline :key="'timeline-' + resizeKey" />
+          </div>
+          <div class="click-hint">Click anywhere to explore rockets →</div>
+          <!-- Añadido -->
+        </RouterLink>
+        <!-- Cambio aquí -->
       </div>
 
       <!-- Columna central: Visualización de cohetes -->
@@ -1046,5 +1053,42 @@ onBeforeUnmount(() => {
   color: #9d4edd;
   font-weight: bold;
   text-shadow: 0 0 6px rgba(157, 78, 221, 0.6);
+}
+
+/* Añadir contenedor para timeline */
+.timeline-container {
+  height: 100%;
+  min-height: 250px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(5, 10, 30, 0.5);
+  border: 1px solid rgba(0, 231, 255, 0.2);
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  transition: height 0.3s ease;
+}
+
+/* Ajustes para asegurar consistencia visual */
+.timeline-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Asegurar que el gráfico ocupe todo el espacio */
+.timeline-container :deep(.launch-timeline) {
+  height: 100%;
+  min-height: 0;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* Mantener hover effect consistente */
+.link-card:hover .timeline-container {
+  border-color: rgba(0, 231, 255, 0.5);
+  box-shadow: 0 0 20px rgba(0, 231, 255, 0.3);
 }
 </style>
