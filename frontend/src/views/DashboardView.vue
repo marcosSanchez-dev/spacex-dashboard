@@ -43,6 +43,7 @@
               <span class="current-year">{{ selectedYear ?? "ALL" }}</span>
               <span class="max-year">2025</span>
             </div>
+
             <button @click="resetFilter" class="reset-button">SHOW ALL</button>
           </div>
         </div>
@@ -150,30 +151,147 @@ const resetFilter = () => {
 // Datos históricos reales de SpaceX (actualizados a 2023)
 const spacexHistoricalData = {
   years: {
-    2006: { successful: 0, failed: 1 },
-    2007: { successful: 0, failed: 1 },
-    2008: { successful: 1, failed: 1 },
-    2009: { successful: 1, failed: 0 },
-    2010: { successful: 2, failed: 0 },
-    2011: { successful: 0, failed: 0 },
-    2012: { successful: 2, failed: 0 },
-    2013: { successful: 1, failed: 0 },
-    2014: { successful: 6, failed: 0 },
-    2015: { successful: 6, failed: 1 },
-    2016: { successful: 8, failed: 0 },
-    2017: { successful: 18, failed: 1 },
-    2018: { successful: 21, failed: 0 },
-    2019: { successful: 13, failed: 0 },
-    2020: { successful: 26, failed: 0 },
-    2021: { successful: 31, failed: 1 },
-    2022: { successful: 61, failed: 0 },
-    2023: { successful: 96, failed: 0 },
-    2024: { successful: 12, failed: 0 }, // Hasta mayo 2024
+    2006: {
+      successful: 0,
+      failed: 1,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 1,
+    },
+    2007: {
+      successful: 0,
+      failed: 1,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 1,
+    },
+    2008: {
+      successful: 1,
+      failed: 1,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 2,
+    },
+    2009: {
+      successful: 1,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 1,
+    },
+    2010: {
+      successful: 2,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 2,
+    },
+    2011: {
+      successful: 0,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 0,
+    },
+    2012: {
+      successful: 2,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 2,
+    },
+    2013: {
+      successful: 1,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 1,
+    },
+    2014: {
+      successful: 6,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 6,
+    },
+    2015: {
+      successful: 6,
+      failed: 1,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 7,
+    },
+    2016: {
+      successful: 8,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 0,
+      totalLaunches: 8,
+    },
+    2017: {
+      successful: 18,
+      failed: 1,
+      starlink: 0,
+      activeRockets: 1,
+      totalLaunches: 19,
+    },
+    2018: {
+      successful: 21,
+      failed: 0,
+      starlink: 0,
+      activeRockets: 1,
+      totalLaunches: 21,
+    },
+    2019: {
+      successful: 13,
+      failed: 0,
+      starlink: 60,
+      activeRockets: 2,
+      totalLaunches: 13,
+    },
+    2020: {
+      successful: 26,
+      failed: 0,
+      starlink: 800,
+      activeRockets: 2,
+      totalLaunches: 26,
+    },
+    2021: {
+      successful: 31,
+      failed: 1,
+      starlink: 1600,
+      activeRockets: 3,
+      totalLaunches: 32,
+    },
+    2022: {
+      successful: 61,
+      failed: 0,
+      starlink: 2500,
+      activeRockets: 3,
+      totalLaunches: 61,
+    },
+    2023: {
+      successful: 96,
+      failed: 0,
+      starlink: 3500,
+      activeRockets: 4,
+      totalLaunches: 96,
+    },
+    2024: {
+      successful: 12,
+      failed: 0,
+      starlink: 4500,
+      activeRockets: 4,
+      totalLaunches: 12,
+    },
   },
   totals: {
     successful: 289,
     failed: 6,
     upcoming: 18,
+    starlink: 4500,
+    activeRockets: 4,
+    totalLaunches: 303,
   },
 };
 
@@ -207,22 +325,55 @@ const failedLaunches = computed(() => {
   return spacexHistoricalData.years[selectedYear.value]?.failed || 0;
 });
 
-// Calcular tasa de éxito global (no filtrada)
-const successRate = computed(() => {
-  if (
-    !dashboardData.value ||
-    dashboardData.value.launches.total === 0 ||
-    dashboardData.value.launches.successful === 0
-  ) {
-    return 0;
+// Calcular total de lanzamientos para el año
+const totalLaunchesForYear = computed(() => {
+  if (selectedYear.value === null) {
+    return dashboardData.value?.launches.total || 0;
   }
+  return spacexHistoricalData.years[selectedYear.value]?.totalLaunches || 0;
+});
 
-  const terminatedLaunches =
-    dashboardData.value.launches.total - dashboardData.value.launches.upcoming;
+// Calcular satélites Starlink para el año
+const starlinkForYear = computed(() => {
+  if (selectedYear.value === null) {
+    return dashboardData.value?.starlink.deployed || 0;
+  }
+  return spacexHistoricalData.years[selectedYear.value]?.starlink || 0;
+});
 
-  return Math.round(
-    (dashboardData.value.launches.successful / terminatedLaunches) * 100
-  );
+// Calcular cohetes activos para el año
+const activeRocketsForYear = computed(() => {
+  if (selectedYear.value === null) {
+    return rockets.value?.filter((r) => r.active).length || 0;
+  }
+  return spacexHistoricalData.years[selectedYear.value]?.activeRockets || 0;
+});
+
+// Calcular tasa de éxito para el año
+const successRateForYear = computed(() => {
+  if (selectedYear.value === null) {
+    // Cálculo global
+    if (
+      !dashboardData.value ||
+      dashboardData.value.launches.total === 0 ||
+      dashboardData.value.launches.successful === 0
+    ) {
+      return 0;
+    }
+
+    const terminatedLaunches =
+      dashboardData.value.launches.total -
+      dashboardData.value.launches.upcoming;
+
+    return Math.round(
+      (dashboardData.value.launches.successful / terminatedLaunches) * 100
+    );
+  } else {
+    // Cálculo para año específico
+    const total = successfulLaunches.value + failedLaunches.value;
+    if (total === 0) return 0;
+    return Math.round((successfulLaunches.value / total) * 100);
+  }
 });
 
 const satellitesToUse = computed(() =>
@@ -262,21 +413,33 @@ const filteredRockets = computed(() => {
     }));
 });
 
-// Computed para cohetes activos
-const activeRockets = computed(() => {
-  return rockets.value?.filter((r) => r.active).length || 0;
-});
-
-// Tarjetas KPI con datos globales (no filtrados)
+// Tarjetas KPI con datos que responden al año seleccionado
 const kpiCards = computed(() => {
-  const totalLaunches = dashboardData.value?.launches.total || 0;
-  const starlinkCount = dashboardData.value?.starlink.deployed || 0;
-
   return [
-    { icon: "📊", title: "TOTAL LAUNCHES", value: totalLaunches },
-    { icon: "🛰️", title: "STARLINK SATELLITES", value: starlinkCount },
-    { icon: "✅", title: "SUCCESS RATE", value: successRate.value, unit: "%" },
-    { icon: "🚀", title: "ACTIVE ROCKETS", value: activeRockets.value },
+    {
+      icon: "📊",
+      title: "TOTAL LAUNCHES",
+      value:
+        selectedYear.value === null
+          ? dashboardData.value?.launches.total || 0
+          : totalLaunchesForYear.value,
+    },
+    {
+      icon: "🛰️",
+      title: "STARLINK SATELLITES",
+      value: starlinkForYear.value,
+    },
+    {
+      icon: "✅",
+      title: "SUCCESS RATE",
+      value: successRateForYear.value,
+      unit: "%",
+    },
+    {
+      icon: "🚀",
+      title: "ACTIVE ROCKETS",
+      value: activeRocketsForYear.value,
+    },
   ];
 });
 
@@ -292,16 +455,13 @@ onMounted(async () => {
         active: 2,
       },
       launches: {
-        total:
-          spacexHistoricalData.totals.successful +
-          spacexHistoricalData.totals.failed +
-          spacexHistoricalData.totals.upcoming,
+        total: spacexHistoricalData.totals.totalLaunches,
         successful: spacexHistoricalData.totals.successful,
         upcoming: spacexHistoricalData.totals.upcoming,
       },
       starlink: {
         total: 3526,
-        deployed: 3268,
+        deployed: spacexHistoricalData.totals.starlink,
       },
     };
   }
@@ -821,5 +981,36 @@ onMounted(async () => {
   .kpi-card:active {
     transform: translateY(-2px);
   }
+}
+
+.slider-labels {
+  position: relative;
+  width: 100%;
+  margin-top: 8px;
+  height: 18px;
+  font-size: 0.75rem;
+  color: #a0c4ff;
+}
+
+.slider-labels .min-year {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.slider-labels .max-year {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.slider-labels .current-year {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  color: #9d4edd;
+  font-weight: bold;
+  text-shadow: 0 0 6px rgba(157, 78, 221, 0.6);
 }
 </style>
