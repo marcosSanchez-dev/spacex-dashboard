@@ -31,28 +31,6 @@
     </transition>
 
     <div class="dashboard-content">
-      <!-- Filtro de año -->
-      <div class="filter-panel glow-box">
-        <div class="filter-header">
-          <span class="filter-icon">📅</span>
-          <h3>FILTER LAUNCHES BY YEAR</h3>
-        </div>
-        <div class="slider-container">
-          <input
-            type="range"
-            min="2015"
-            max="2025"
-            v-model="selectedYear"
-            class="timeline-slider"
-          />
-          <div class="slider-labels">
-            <span>2015</span>
-            <span class="current-year">{{ selectedYear || "ALL" }}</span>
-            <span>2025</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Buscador -->
       <div class="search-box glow-box">
         <input
@@ -63,13 +41,26 @@
         />
       </div>
 
+      <!-- Gráfico de timeline -->
+      <div class="timeline-section">
+        <div class="section-header">
+          <div class="section-icon">📅</div>
+          <h2>LAUNCH TIMELINE</h2>
+        </div>
+        <div class="timeline-container glow-box">
+          <LaunchTimeline />
+        </div>
+      </div>
+
       <!-- Gráfico 3D de comparación -->
-      <div class="chart-container">
-        <Rocket3DBarChart
-          :data="filteredRockets"
-          :year="selectedYear || undefined"
-          class="glow-chart"
-        />
+      <div class="rockets-section">
+        <div class="section-header">
+          <div class="section-icon">🚀</div>
+          <h2>ROCKET COMPARISON</h2>
+        </div>
+        <div class="chart-container glow-box">
+          <Rocket3DBarChart :data="filteredRockets" class="glow-chart" />
+        </div>
       </div>
     </div>
   </div>
@@ -79,11 +70,11 @@
 import { ref, onMounted, computed } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
+import LaunchTimeline from "../components/LaunchTimeline.vue";
 import { RouterLink } from "vue-router";
 
 const rockets = ref<any[]>([]);
 const filter = ref("");
-const selectedYear = ref<number | null>(null);
 const { fetchData, isLoading, error } = useSpaceX();
 
 onMounted(async () => {
@@ -94,21 +85,7 @@ onMounted(async () => {
 const filteredRockets = computed(() => {
   return rockets.value
     .filter((r) => {
-      // Filtro por nombre
-      const nameMatch = r.name
-        .toLowerCase()
-        .includes(filter.value.toLowerCase());
-
-      // Filtro por año (si se ha seleccionado un año)
-      let yearMatch = true;
-      if (selectedYear.value) {
-        const firstFlightYear = r.first_flight
-          ? new Date(r.first_flight).getFullYear()
-          : null;
-        yearMatch = firstFlightYear === selectedYear.value;
-      }
-
-      return nameMatch && yearMatch;
+      return r.name.toLowerCase().includes(filter.value.toLowerCase());
     })
     .map((r) => ({
       id: r.id,
@@ -134,6 +111,8 @@ const filteredRockets = computed(() => {
   min-height: 100vh;
   font-family: "Orbitron", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .view-header {
@@ -141,6 +120,7 @@ const filteredRockets = computed(() => {
   align-items: center;
   margin-bottom: 20px;
   position: relative;
+  flex-shrink: 0;
 }
 
 .back-button {
@@ -187,9 +167,12 @@ const filteredRockets = computed(() => {
 .dashboard-content {
   max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
+  gap: 25px;
+  padding: 10px;
 }
 
 /* Loader flotante */
@@ -227,105 +210,86 @@ const filteredRockets = computed(() => {
   text-shadow: 0 0 10px rgba(0, 231, 255, 0.7);
 }
 
-.chart-container {
-  background: rgba(16, 22, 58, 0.5);
-  border-radius: 12px;
-  border: 1px solid rgba(0, 231, 255, 0.2);
-  padding: 15px;
-  margin-top: 30px;
-  box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
-  flex: 1;
-  min-height: 300px;
+/* Secciones */
+.timeline-section,
+.rockets-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
-.search-box {
-  background: rgba(10, 15, 40, 0.6);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  border-radius: 16px;
-  padding: 15px;
-  margin: 25px 0;
-  backdrop-filter: blur(6px);
-}
-
-.search-input {
-  width: 100%;
-  padding: 12px 18px;
-  border-radius: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
-  font-size: 1rem;
-  outline: none;
-  font-family: "Orbitron", sans-serif;
-  letter-spacing: 1px;
-}
-
-.search-input:focus {
-  border-color: #00fff7;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-}
-
-/* FILTRO POR AÑO */
-.filter-panel {
-  background: rgba(16, 22, 58, 0.6);
-  border: 1px solid rgba(0, 231, 255, 0.3);
-  border-radius: 12px;
-  padding: 20px;
-  backdrop-filter: blur(6px);
-}
-
-.filter-header {
+.section-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 12px;
+  padding: 0 10px;
 }
 
-.filter-header h3 {
+.section-icon {
+  font-size: 1.8rem;
+  color: #00e6ff;
+  text-shadow: 0 0 10px rgba(0, 231, 255, 0.7);
+}
+
+.section-header h2 {
   margin: 0;
+  font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: 1px;
   color: #80deea;
   text-transform: uppercase;
 }
 
-.timeline-slider {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(to right, #00e6ff, #9d4edd);
-  outline: none;
-  margin: 15px 0;
+/* Contenedores */
+.timeline-container,
+.chart-container {
+  background: rgba(16, 22, 58, 0.5);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 231, 255, 0.2);
+  padding: 20px;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+  overflow: hidden;
+  position: relative;
 }
 
-.timeline-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #9d4edd;
-  border: 2px solid #fff;
-  box-shadow: 0 0 10px #9d4edd;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.timeline-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
-.slider-labels {
+.timeline-container {
+  height: 300px;
   display: flex;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  color: #a0c4ff;
 }
 
-.current-year {
-  font-weight: bold;
-  color: #9d4edd;
-  text-shadow: 0 0 8px rgba(157, 78, 221, 0.6);
+.chart-container {
+  flex: 1;
+  min-height: 400px;
+}
+
+/* Buscador */
+.search-box {
+  background: rgba(10, 15, 40, 0.6);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 16px;
+  padding: 15px;
+  backdrop-filter: blur(6px);
+  margin-bottom: 5px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  font-size: 1.1rem;
+  outline: none;
+  font-family: "Orbitron", sans-serif;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #00fff7;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 /* ERROR */
@@ -397,9 +361,32 @@ const filteredRockets = computed(() => {
 }
 
 /* Responsive */
-@media (max-width: 1200px) {
-  .chart-container {
-    height: 500px;
+@media (min-width: 992px) {
+  .dashboard-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 25px;
+  }
+
+  .search-box {
+    grid-column: 1 / span 2;
+  }
+
+  .timeline-section {
+    grid-column: 1;
+    grid-row: 2;
+    height: 100%;
+  }
+
+  .rockets-section {
+    grid-column: 2;
+    grid-row: 2;
+    height: 100%;
+  }
+
+  .timeline-container {
+    height: 100%;
   }
 }
 
@@ -420,6 +407,48 @@ const filteredRockets = computed(() => {
 
   .glow-logo {
     max-width: 180px;
+  }
+
+  .section-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .search-input {
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+
+  .timeline-container {
+    height: 250px;
+  }
+
+  .chart-container {
+    min-height: 350px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-content {
+    padding: 5px;
+    gap: 15px;
+  }
+
+  .section-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .timeline-container,
+  .chart-container {
+    padding: 15px;
+    border-radius: 14px;
+  }
+
+  .timeline-container {
+    height: 220px;
+  }
+
+  .chart-container {
+    min-height: 300px;
   }
 }
 </style>
