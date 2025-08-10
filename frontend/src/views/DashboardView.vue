@@ -75,7 +75,7 @@
       <div class="timeline-column">
         <div class="timeline-panel glow-box">
           <h3 class="panel-title">📅 LAUNCH TIMELINE</h3>
-          <LaunchTimeline />
+          <LaunchTimeline :key="'timeline-' + resizeKey" />
         </div>
       </div>
 
@@ -89,6 +89,7 @@
             <Rocket3DBarChart
               :data="filteredRockets"
               :year="rocketYearFilter"
+              :key="'rocket-chart-' + resizeKey"
             />
           </div>
 
@@ -105,6 +106,7 @@
             <StarlinkGlobe
               :satellites="satellitesToUse"
               :highlightOrbit="activeOrbitType"
+              :key="'globe-' + resizeKey"
             />
           </div>
 
@@ -116,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import { RouterLink } from "vue-router";
 import { useSpaceX } from "../composables/useSpaceX";
 import SuccessPie from "../components/SuccessPie.vue";
@@ -131,6 +133,7 @@ const selectedYear = ref<number | null>(null);
 const rocketFilter = ref("");
 const rocketYearFilter = ref(new Date().getFullYear());
 const activeOrbitType = ref<string | null>(null);
+const resizeKey = ref(0); // Clave para forzar re-render al redimensionar
 
 // Usamos el composable para obtener los métodos y estados
 const {
@@ -147,6 +150,11 @@ const {
 const resetFilter = () => {
   selectedYear.value = null;
 };
+
+// Manejar redimensionamiento
+function handleResize() {
+  resizeKey.value++;
+}
 
 // Datos históricos reales de SpaceX (actualizados a 2023)
 const spacexHistoricalData = {
@@ -474,6 +482,14 @@ onMounted(async () => {
   if (!starlink.value || starlink.value.length === 0) {
     await fetchStarlink();
   }
+
+  // Agregar listener para redimensionamiento
+  window.addEventListener("resize", handleResize);
+});
+
+onBeforeUnmount(() => {
+  // Limpiar listener de redimensionamiento
+  window.removeEventListener("resize", handleResize);
 });
 </script>
 
@@ -596,6 +612,7 @@ onMounted(async () => {
   gap: 15px;
   flex: 1;
   min-height: 0;
+  transition: all 0.5s ease-in-out;
 }
 
 .timeline-column,
@@ -604,6 +621,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  transition: all 0.5s ease-in-out;
 }
 
 .link-card {
@@ -752,6 +770,7 @@ onMounted(async () => {
   flex: 1;
   position: relative;
   z-index: 1;
+  transition: height 0.3s ease;
 }
 
 .globe-container {
@@ -765,6 +784,7 @@ onMounted(async () => {
   flex: 1;
   position: relative;
   z-index: 1;
+  transition: height 0.3s ease;
 }
 
 @keyframes float {
@@ -951,18 +971,32 @@ onMounted(async () => {
   .timeline-column,
   .rockets-column,
   .starlink-column {
-    height: 450px;
+    height: auto;
+    min-height: 400px;
     margin-bottom: 15px;
   }
 
   .chart-3d-container,
   .globe-container {
-    height: 320px;
+    height: 350px;
   }
 
   .click-hint {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@media (min-width: 1201px) {
+  .timeline-column,
+  .rockets-column,
+  .starlink-column {
+    min-height: 0;
+  }
+
+  .chart-3d-container,
+  .globe-container {
+    height: 100%;
   }
 }
 

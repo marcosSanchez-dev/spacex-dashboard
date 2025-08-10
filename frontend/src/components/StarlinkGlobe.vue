@@ -39,6 +39,13 @@ onMounted(() => {
   });
 });
 
+onUnmounted(() => {
+  window.removeEventListener("resize", onWindowResize);
+  if (renderer) {
+    renderer.dispose();
+  }
+});
+
 function initGlobe() {
   if (!globeContainer.value) return;
 

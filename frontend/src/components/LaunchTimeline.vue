@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import * as d3 from "d3";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, onUnmounted } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 
 interface LaunchData {
@@ -19,6 +19,16 @@ const props = defineProps<{
 const chartContainer = ref<HTMLElement | null>(null);
 const { fetchData } = useSpaceX();
 const launchData = ref<LaunchData[]>([]);
+
+onMounted(async () => {
+  await loadData();
+  drawChart();
+  window.addEventListener("resize", drawChart);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("resize", drawChart); // Limpiar evento
+});
 
 // Procesar datos de lanzamientos para timeline
 const processLaunchesForTimeline = (launches: any[]): LaunchData[] => {

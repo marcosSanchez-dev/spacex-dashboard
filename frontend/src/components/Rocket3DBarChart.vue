@@ -56,6 +56,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (renderer) renderer.dispose();
+  window.removeEventListener("resize", onWindowResize); // Limpiar evento
 });
 
 watch(
