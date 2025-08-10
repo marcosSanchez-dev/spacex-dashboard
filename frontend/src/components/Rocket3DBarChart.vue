@@ -43,20 +43,45 @@ let camera: THREE.PerspectiveCamera;
 let renderer: THREE.WebGLRenderer;
 let controls: OrbitControls;
 let bars: THREE.Mesh[] = [];
-let labels: THREE.Sprite[] = []; // Almacenar etiquetas para poder eliminarlas
+let labels: THREE.Sprite[] = [];
 const barSpacing = 4;
 const maxBarHeight = 20;
+let resizeObserver: ResizeObserver | null = null;
+let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
   if (!chartContainer.value) return;
+
   initThreeJS();
   createScene();
   animate();
+
+  // Observador de redimensionamiento con debounce
+  resizeObserver = new ResizeObserver((entries) => {
+    if (resizeTimeout) clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      handleResize();
+    }, 100);
+  });
+
+  resizeObserver.observe(chartContainer.value);
 });
 
 onUnmounted(() => {
-  if (renderer) renderer.dispose();
-  window.removeEventListener("resize", onWindowResize); // Limpiar evento
+  if (renderer) {
+    renderer.dispose();
+    renderer.forceContextLoss();
+  }
+
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+  }
+
+  window.removeEventListener("resize", handleResize);
 });
 
 watch(
@@ -84,18 +109,17 @@ function initThreeJS() {
   scene.fog = new THREE.Fog(0x000814, 20, 60);
 
   camera = new THREE.PerspectiveCamera(
-    45, // Ángulo de visión más amplio
+    45,
     chartContainer.value.clientWidth / chartContainer.value.clientHeight,
     0.1,
     1000
   );
-  // Posición de cámara ajustada para mejor visualización
   camera.position.set(10, 15, 30);
 
   renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
-    logarithmicDepthBuffer: true, // Mejorar profundidad
+    logarithmicDepthBuffer: true,
   });
   renderer.setSize(
     chartContainer.value.clientWidth,
@@ -111,9 +135,8 @@ function initThreeJS() {
   controls.minDistance = 15;
   controls.maxDistance = 50;
 
-  // Mejor iluminación
-  scene.add(new THREE.AmbientLight(0xffffff, 1.5)); // Intensidad aumentada
-  const dirLight = new THREE.DirectionalLight(0x00fff7, 2.0); // Más brillante
+  scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+  const dirLight = new THREE.DirectionalLight(0x00fff7, 2.0);
   dirLight.position.set(5, 20, 15);
   scene.add(dirLight);
 
@@ -121,21 +144,18 @@ function initThreeJS() {
   fillLight.position.set(-10, 5, -10);
   scene.add(fillLight);
 
-  // Grid más visible
   const gridHelper = new THREE.GridHelper(50, 10, 0x00c3ff, 0x004d66);
   (gridHelper.material as THREE.Material).opacity = 0.4;
   (gridHelper.material as THREE.Material).transparent = true;
   scene.add(gridHelper);
 
-  // Ejes de referencia
   const axesHelper = new THREE.AxesHelper(10);
   scene.add(axesHelper);
 
-  window.addEventListener("resize", onWindowResize);
+  window.addEventListener("resize", handleResize);
 }
 
 function createScene() {
-  // Limpiar barras y etiquetas existentes
   bars.forEach((bar) => scene.remove(bar));
   labels.forEach((label) => scene.remove(label));
   bars = [];
@@ -146,15 +166,12 @@ function createScene() {
   props.data.forEach((rocket: RocketData, index) => {
     const x = index * barSpacing - ((props.data.length - 1) * barSpacing) / 2;
 
-    // Manejar diferentes formatos de altura
     const heightValue =
       typeof rocket.height === "object" ? rocket.height.meters : rocket.height;
 
-    // Manejar diferentes formatos de masa
     const massValue =
       typeof rocket.mass === "object" ? rocket.mass.kg : rocket.mass;
 
-    // Escalas ajustadas para mejor visualización
     const heightScale = Math.min(heightValue / 70, 1);
     const massScale = Math.min(massValue / 1400000, 1);
 
@@ -181,10 +198,9 @@ function createScene() {
     scene.add(heightBar, massBar);
     bars.push(heightBar, massBar);
 
-    // Etiquetas más visibles
     const label = createTextLabel(rocket.name, new THREE.Vector3(x, -2.5, 0));
     scene.add(label);
-    labels.push(label); // Guardar referencia a la etiqueta
+    labels.push(label);
   });
 }
 
@@ -201,7 +217,7 @@ function createBar(
   const material = new THREE.MeshPhongMaterial({
     color,
     emissive: color,
-    emissiveIntensity: 0.5, // Aumentado para más brillo
+    emissiveIntensity: 0.5,
     shininess: 100,
     specular: 0xffffff,
   });
@@ -209,7 +225,6 @@ function createBar(
   const bar = new THREE.Mesh(geometry, material);
   bar.position.set(position.x, position.y, position.z);
 
-  // Bordes brillantes
   const edges = new THREE.EdgesGeometry(geometry);
   const line = new THREE.LineSegments(
     edges,
@@ -217,7 +232,7 @@ function createBar(
       color: 0xffffff,
       linewidth: 2,
       transparent: true,
-      opacity: 0.8, // Más visible
+      opacity: 0.8,
     })
   );
   bar.add(line);
@@ -232,7 +247,6 @@ function createTextLabel(text: string, position: THREE.Vector3) {
   canvas.width = 256;
   canvas.height = 64;
 
-  // Fondo más transparente
   context.fillStyle = "rgba(10, 14, 41, 0.7)";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -241,7 +255,7 @@ function createTextLabel(text: string, position: THREE.Vector3) {
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.shadowColor = "#00c3ff";
-  context.shadowBlur = 10; // Más brillo
+  context.shadowBlur = 10;
   context.fillText(text, canvas.width / 2, canvas.height / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -251,7 +265,7 @@ function createTextLabel(text: string, position: THREE.Vector3) {
   });
   const sprite = new THREE.Sprite(material);
   sprite.position.copy(position);
-  sprite.scale.set(10, 2.5, 1); // Más grande
+  sprite.scale.set(10, 2.5, 1);
   return sprite;
 }
 
@@ -259,16 +273,22 @@ function updateChart() {
   createScene();
 }
 
-function onWindowResize() {
+function handleResize() {
   if (!chartContainer.value) return;
 
-  camera.aspect =
-    chartContainer.value.clientWidth / chartContainer.value.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(
-    chartContainer.value.clientWidth,
-    chartContainer.value.clientHeight
-  );
+  const width = chartContainer.value.clientWidth;
+  const height = chartContainer.value.clientHeight;
+
+  if (
+    renderer &&
+    (renderer.domElement.width !== width ||
+      renderer.domElement.height !== height)
+  ) {
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+    renderer.render(scene, camera);
+  }
 }
 
 function animate() {
@@ -280,9 +300,11 @@ function animate() {
 
 <style scoped>
 .rocket-3d-chart {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .chart-canvas {

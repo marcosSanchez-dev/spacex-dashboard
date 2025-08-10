@@ -8,16 +8,13 @@ import { ref, onMounted, watch, onUnmounted } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 
 interface LaunchData {
-  year: string; // "2006"
+  year: string;
   count: number;
 }
 
 const props = defineProps<{
-  /** Altura fija opcional. Si no se pasa, usa la altura real del contenedor. */
   height?: number;
-  /** Año inicial del timeline (default: 2006). */
   startYear?: number;
-  /** Año final del timeline (default: año actual). */
   endYear?: number;
 }>();
 
@@ -25,14 +22,13 @@ const chartContainer = ref<HTMLElement | null>(null);
 const { fetchData } = useSpaceX();
 const launchData = ref<LaunchData[]>([]);
 
-// --- Helpers ---
 let resizeObserver: ResizeObserver | null = null;
+let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const getHeight = () => {
   return props.height ?? chartContainer.value?.clientHeight ?? 300;
 };
 
-/** Convierte lanzamientos crudos a {year, count} y densifica el rango de años */
 const toDenseYearCounts = (launches: any[]): LaunchData[] => {
   const counts: Record<string, number> = {};
 
@@ -44,7 +40,7 @@ const toDenseYearCounts = (launches: any[]): LaunchData[] => {
   }
 
   const yearsInData = Object.keys(counts).map((y) => +y);
-  const defaultStart = 2006; // primer lanzamiento de SpaceX
+  const defaultStart = 2006;
   const defaultEnd = new Date().getFullYear();
 
   const start =
@@ -72,19 +68,15 @@ const loadData = async () => {
   } catch (err) {
     console.error("Error loading launch data", err);
   }
-  // Fallback mínimo si la API falla o viene vacía (también densificado)
   launchData.value = toDenseYearCounts([
     { date_utc: "2020-01-01T00:00:00.000Z" },
     { date_utc: "2020-02-01T00:00:00.000Z" },
-    // 2021 (31)
     ...Array.from({ length: 31 }, () => ({
       date_utc: "2021-01-01T00:00:00.000Z",
     })),
-    // 2022 (61)
     ...Array.from({ length: 61 }, () => ({
       date_utc: "2022-01-01T00:00:00.000Z",
     })),
-    // 2023 (96)
     ...Array.from({ length: 96 }, () => ({
       date_utc: "2023-01-01T00:00:00.000Z",
     })),
@@ -94,10 +86,8 @@ const loadData = async () => {
 const drawChart = () => {
   if (!chartContainer.value || launchData.value.length === 0) return;
 
-  // Limpiar contenedor
   d3.select(chartContainer.value).selectAll("*").remove();
 
-  // Medidas del lienzo
   const width = chartContainer.value.clientWidth;
   const height = getHeight();
   const margin = { top: 20, right: 30, bottom: 40, left: 50 };
@@ -112,7 +102,6 @@ const drawChart = () => {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Escalas
   const years = launchData.value.map((d) => d.year);
   const x = d3
     .scaleBand<string>()
@@ -123,8 +112,7 @@ const drawChart = () => {
   const yMax = (d3.max(launchData.value, (d) => d.count) ?? 1) * 1.2;
   const y = d3.scaleLinear().domain([0, yMax]).nice().range([innerH, 0]);
 
-  // Ejes (reducimos etiquetas si hay muchos años)
-  const step = years.length > 20 ? 2 : 1; // muestra 1 de cada 2 si es largo
+  const step = years.length > 20 ? 2 : 1;
   const xAxis = d3
     .axisBottom(x)
     .tickValues(years.filter((_, i) => i % step === 0));
@@ -146,7 +134,6 @@ const drawChart = () => {
     .selectAll("text")
     .attr("fill", "#80deea");
 
-  // Línea
   const line = d3
     .line<LaunchData>()
     .x((d) => (x(d.year) ?? 0) + x.bandwidth() / 2)
@@ -162,7 +149,6 @@ const drawChart = () => {
     .attr("d", line)
     .style("filter", "url(#line-glow)");
 
-  // Puntos
   svg
     .selectAll(".dot")
     .data(launchData.value)
@@ -177,7 +163,6 @@ const drawChart = () => {
     .attr("stroke-width", 2)
     .style("filter", "url(#point-glow)");
 
-  // Etiquetas (solo para puntos > 0 para no saturar)
   svg
     .selectAll(".label")
     .data(launchData.value.filter((d) => d.count > 0))
@@ -191,7 +176,6 @@ const drawChart = () => {
     .attr("font-weight", "bold")
     .text((d) => d.count);
 
-  // Filtros de brillo
   const defs = svg.append("defs");
 
   const glowFilter = defs
@@ -221,21 +205,26 @@ const drawChart = () => {
   pointMerge.append("feMergeNode").attr("in", "SourceGraphic");
 };
 
-// --- Lifecycle ---
 onMounted(async () => {
   await loadData();
   drawChart();
 
-  if (window.ResizeObserver && chartContainer.value) {
-    resizeObserver = new ResizeObserver(() => drawChart());
+  resizeObserver = new ResizeObserver(() => {
+    if (resizeTimeout) clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      drawChart();
+    }, 100);
+  });
+
+  if (chartContainer.value) {
     resizeObserver.observe(chartContainer.value);
   }
-  window.addEventListener("resize", drawChart);
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", drawChart);
   if (resizeObserver) resizeObserver.disconnect();
+  if (resizeTimeout) clearTimeout(resizeTimeout);
+  window.removeEventListener("resize", drawChart);
 });
 
 watch(launchData, () => drawChart());

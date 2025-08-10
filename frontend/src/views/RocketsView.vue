@@ -173,6 +173,7 @@ const filteredRockets = computed(() => {
   flex-direction: column;
   gap: 25px;
   padding: 10px;
+  min-height: 0;
 }
 
 /* Loader flotante */
@@ -241,7 +242,6 @@ const filteredRockets = computed(() => {
 }
 
 /* Contenedores */
-/* Contenedores */
 .timeline-container,
 .chart-container {
   background: rgba(16, 22, 58, 0.5);
@@ -254,7 +254,6 @@ const filteredRockets = computed(() => {
 }
 
 .timeline-container {
-  /* antes: height: 300px; display:flex; */
   min-height: 400px;
   display: block;
 }
@@ -270,6 +269,7 @@ const filteredRockets = computed(() => {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto 1fr;
     gap: 25px;
+    height: calc(100vh - 150px);
   }
 
   .search-box {
@@ -288,8 +288,15 @@ const filteredRockets = computed(() => {
   }
 
   .timeline-container {
-    /* ocupar toda la celda, con una base cómoda */
-    min-height: 440px;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+  }
+
+  .chart-container {
+    min-height: 0;
+    height: 100%;
+    position: relative;
   }
 }
 
@@ -392,35 +399,6 @@ const filteredRockets = computed(() => {
 }
 
 /* Responsive */
-@media (min-width: 992px) {
-  .dashboard-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr;
-    gap: 25px;
-  }
-
-  .search-box {
-    grid-column: 1 / span 2;
-  }
-
-  .timeline-section {
-    grid-column: 1;
-    grid-row: 2;
-    height: 100%;
-  }
-
-  .rockets-section {
-    grid-column: 2;
-    grid-row: 2;
-    height: 100%;
-  }
-
-  .timeline-container {
-    height: 100%;
-  }
-}
-
 @media (max-width: 768px) {
   .view-header {
     flex-direction: column;
