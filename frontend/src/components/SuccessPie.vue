@@ -44,11 +44,6 @@ interface PieData {
 const drawChart = () => {
   if (!svgRef.value) return;
 
-  const data: PieData[] = [
-    { label: "Success", value: props.success, color: "#00ff9d" },
-    { label: "Failure", value: props.failure, color: "#ff0055" },
-  ];
-
   // Limpiar SVG
   d3.select(svgRef.value).selectAll("*").remove();
 
@@ -74,10 +69,23 @@ const drawChart = () => {
   feMerge.append("feMergeNode").attr("in", "coloredBlur");
   feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
+  // Crear datos para el gráfico, asegurando que al menos un valor sea > 0
+  let data: PieData[] = [];
+
+  if (props.success > 0 || props.failure > 0) {
+    data = [
+      { label: "Success", value: props.success, color: "#00ff9d" },
+      { label: "Failure", value: props.failure, color: "#ff0055" },
+    ];
+  } else {
+    // Si ambos son cero, mostrar un círculo completo gris
+    data = [{ label: "No Data", value: 1, color: "#444444" }];
+  }
+
   // Crear gráfico de pastel
   const pie = d3
     .pie<PieData>()
-    .value((d) => d.value)
+    .value((d) => Math.max(d.value, 0.001)) // Asegurar valor mínimo positivo
     .sort(null);
 
   const arc = d3
@@ -93,11 +101,10 @@ const drawChart = () => {
     .append("g")
     .attr("class", "arc");
 
-  // Animación de entrada - CORRECCIÓN PRINCIPAL
+  // Animación de entrada mejorada
   const arcTween = (d: d3.PieArcDatum<PieData>) => {
-    // FIX: Manejar casos donde startAngle podría ser undefined
-    const start = d.startAngle || 0;
-    const end = d.endAngle || 0;
+    const start = d.startAngle;
+    const end = d.endAngle;
     const interpolate = d3.interpolate(start, end);
 
     return (t: number) => {
@@ -166,11 +173,9 @@ onMounted(() => {
 watch(
   () => [props.success, props.failure],
   () => {
-    if (initialAnimationComplete.value) {
-      drawChart();
-    }
+    drawChart();
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 </script>
 

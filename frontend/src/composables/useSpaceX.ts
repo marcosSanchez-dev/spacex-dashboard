@@ -1,7 +1,7 @@
 import axios from "axios";
 import { ref } from "vue";
 
-const BASE_URL = "http://localhost:8000"; // o tu URL de backend
+const BASE_URL = "http://localhost:8000";
 
 export function useSpaceX() {
   const isLoading = ref(false);
@@ -27,14 +27,14 @@ export function useSpaceX() {
   const fetchRockets = async () => {
     const data = await fetchData<{ data: any[] }>("/api/rockets");
     if (data) {
-      rockets.value = data.data; // Extraer array de datos
+      rockets.value = data.data || [];
     }
   };
 
   const fetchStarlink = async () => {
     const data = await fetchData<{ data: any[] }>("/api/starlink");
     if (data) {
-      starlink.value = data.data; // Extraer array de datos
+      starlink.value = data.data || [];
     }
   };
 
