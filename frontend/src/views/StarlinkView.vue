@@ -166,19 +166,22 @@ function initGlobe() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000814);
 
-  // 2. Crear cámara
+  // 2. Crear cámara - ajustada para mayor zoom inicial
   camera = new THREE.PerspectiveCamera(
-    45,
+    30, // Ángulo más estrecho para mayor zoom
     globeContainer.value.clientWidth / globeContainer.value.clientHeight,
     0.1,
     100000
   );
-  camera.position.set(0, 0, 4);
+
+  // Posición inicial más cercana
+  camera.position.set(0, 0, 6); // Reducido de 4 a 1.8 para más zoom
 
   // 3. Crear renderizador
   renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
+    logarithmicDepthBuffer: true, // Mejor manejo de profundidad
   });
   renderer.setSize(
     globeContainer.value.clientWidth,
@@ -187,7 +190,7 @@ function initGlobe() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   globeContainer.value.appendChild(renderer.domElement);
 
-  // 4. Controles de órbita
+  // 4. Controles de órbita - ajustados para permitir más zoom
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
@@ -195,7 +198,9 @@ function initGlobe() {
   controls.enablePan = false;
   controls.enableZoom = true;
   controls.screenSpacePanning = false;
-  controls.minDistance = 10;
+
+  // Permite acercarse mucho más
+  controls.minDistance = 1.5; // Reducido de 10 a 1.5
   controls.maxDistance = 30;
 
   // 5. Crear Tierra
