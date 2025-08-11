@@ -42,7 +42,7 @@
           />
         </div>
 
-        <!-- ✅ Filtro conectado al backend -->
+        <!-- Filtro de cohetes activos -->
         <div class="filter-buttons">
           <button
             @click="toggleActiveFilter"
@@ -75,7 +75,7 @@
         </div>
       </div>
 
-      <!-- ✅ Gráfico D3 simple (altura de cohetes) -->
+      <!-- Gráfico D3 simple (altura de cohetes) -->
       <div class="d3-section">
         <div class="section-header">
           <div class="section-icon">📊</div>
@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from "vue";
+import { ref, onMounted, computed, watch, nextTick, onUnmounted } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
 import LaunchTimeline from "../components/LaunchTimeline.vue";
@@ -103,9 +103,43 @@ const rocketChart = ref<HTMLElement | null>(null);
 const showActiveOnly = ref(false);
 const { fetchData, isLoading, error } = useSpaceX();
 
+// Variables para manejar el resize
+let resizeObserver: ResizeObserver | null = null;
+let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+let initialRenderDone = ref(false);
+
 onMounted(async () => {
   await loadRockets();
-  nextTick(renderChart);
+
+  // Esperar a que el DOM esté completamente renderizado
+  setTimeout(() => {
+    renderChart();
+    initialRenderDone.value = true;
+  }, 100);
+
+  // Observar cambios en el tamaño del contenedor
+  if (rocketChart.value) {
+    resizeObserver = new ResizeObserver(() => {
+      if (!initialRenderDone.value) return;
+
+      // Usamos debounce para evitar múltiples llamadas seguidas
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        renderChart();
+      }, 200);
+    });
+    resizeObserver.observe(rocketChart.value);
+  }
+});
+
+onUnmounted(() => {
+  // Limpiar observador y temporizador al desmontar
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+  if (resizeTimer) {
+    clearTimeout(resizeTimer);
+  }
 });
 
 const toggleActiveFilter = () => {
@@ -130,7 +164,7 @@ const filteredRockets = computed(() => {
     .map((r) => ({
       id: r.id,
       name: r.name,
-      height: r.height, // Mantenemos el objeto completo
+      height: r.height,
       mass: r.mass,
       first_flight: r.first_flight,
       success_rate: r.success_rate,
@@ -141,10 +175,21 @@ const filteredRockets = computed(() => {
 watch(
   filteredRockets,
   () => {
-    nextTick(renderChart);
+    if (initialRenderDone.value) {
+      nextTick(renderChart);
+    }
   },
   { deep: true }
 );
+
+function getHeightValue(rocket: any) {
+  if (typeof rocket.height === "number") {
+    return rocket.height;
+  } else if (rocket.height && typeof rocket.height === "object") {
+    return rocket.height.meters || 0;
+  }
+  return 0;
+}
 
 function renderChart() {
   if (!rocketChart.value || filteredRockets.value.length === 0) return;
@@ -152,33 +197,32 @@ function renderChart() {
   // Limpiar el contenedor antes de renderizar
   d3.select(rocketChart.value).selectAll("*").remove();
 
-  const margin = { top: 20, right: 20, bottom: 50, left: 60 };
-  const width = rocketChart.value.clientWidth - margin.left - margin.right;
-  const height = 300 - margin.top - margin.bottom;
+  const margin = { top: 20, right: 20, bottom: 70, left: 60 }; // Margen inferior aumentado para móviles
+  const containerWidth = rocketChart.value.clientWidth;
+  const containerHeight = rocketChart.value.clientHeight;
+
+  // Si el contenedor no tiene tamaño, usar valores por defecto
+  const width =
+    containerWidth > 0 ? containerWidth - margin.left - margin.right : 300;
+  const height =
+    containerHeight > 0 ? containerHeight - margin.top - margin.bottom : 200;
 
   const svg = d3
     .select(rocketChart.value)
     .append("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", containerWidth || 300)
+    .attr("height", containerHeight || 250)
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Función para obtener el valor de altura correcto
-  const getHeightValue = (rocket: any) => {
-    if (typeof rocket.height === "number") {
-      return rocket.height;
-    } else if (rocket.height && typeof rocket.height === "object") {
-      return rocket.height.meters || 0;
-    }
-    return 0;
-  };
-
-  // Preparar datos con la altura correcta
+  // Preparar datos
   const chartData = filteredRockets.value.map((d) => ({
     ...d,
     heightValue: getHeightValue(d),
   }));
+
+  // Salir si no hay datos válidos
+  if (chartData.length === 0) return;
 
   // Escalas
   const x = d3
@@ -194,14 +238,25 @@ function renderChart() {
     .range([height, 0]);
 
   // Ejes
-  svg
+  const xAxis = svg
     .append("g")
     .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(x))
+    .call(d3.axisBottom(x));
+
+  // Rotar etiquetas solo si hay espacio insuficiente
+  if (containerWidth < 600) {
+    xAxis
+      .selectAll("text")
+      .attr("transform", "rotate(-45)")
+      .style("text-anchor", "end")
+      .attr("dx", "-0.8em")
+      .attr("dy", "0.15em");
+  }
+
+  xAxis
     .selectAll("text")
-    .attr("transform", "rotate(-15)")
-    .style("text-anchor", "end")
-    .style("fill", "#80deea");
+    .style("fill", "#80deea")
+    .style("font-size", containerWidth < 600 ? "10px" : "12px");
 
   svg.append("g").call(d3.axisLeft(y).ticks(5)).style("color", "#80deea");
 
@@ -242,7 +297,7 @@ function renderChart() {
     .attr("y", (d) => y(d.heightValue) - 5)
     .attr("text-anchor", "middle")
     .style("fill", "#ffffff")
-    .style("font-size", "12px")
+    .style("font-size", containerWidth < 600 ? "10px" : "12px")
     .text((d) => (d.heightValue ? `${d.heightValue.toFixed(1)}m` : "N/A"));
 }
 </script>
@@ -367,6 +422,7 @@ function renderChart() {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  height: 100%; /* Ocupar todo el espacio disponible */
 }
 
 .section-header {
@@ -417,7 +473,7 @@ function renderChart() {
 
 .d3-chart {
   width: 100%;
-  height: 300px;
+  height: 100%;
 }
 
 /* Filtros */
@@ -495,6 +551,7 @@ function renderChart() {
   .d3-section {
     grid-column: 1 / span 2;
     grid-row: 3;
+    height: 400px;
   }
 
   .timeline-container {
@@ -608,7 +665,22 @@ function renderChart() {
   opacity: 0;
 }
 
-/* Responsive */
+/* Responsive para dispositivos móviles */
+@media (max-width: 991px) {
+  .dashboard-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .d3-section {
+    min-height: 400px;
+  }
+
+  .d3-chart-container {
+    min-height: 400px;
+  }
+}
+
 @media (max-width: 768px) {
   .view-header {
     flex-direction: column;
@@ -676,6 +748,21 @@ function renderChart() {
   .chart-container,
   .d3-chart-container {
     min-height: 300px;
+  }
+
+  /* Ajustes adicionales para móviles pequeños */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filter-button {
+    width: 100%;
   }
 }
 </style>
