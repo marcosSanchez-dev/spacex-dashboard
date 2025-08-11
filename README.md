@@ -2,8 +2,6 @@
 **Author:** Marcos Sanchez 
 **Latest Updates:** Extended filters, Three.js visualizations, Improved resilience
 
-This version meets the requirements of the QuadSci Full Stack Engineer Technical Exercise.
-
 ---
 
 ## 1) Goal
