@@ -1,0 +1,15 @@
+<!-- public/favicon.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Fondo navy, bordes suaves para mejor legibilidad en tamaños pequeños -->
+  <rect width="64" height="64" rx="12" fill="#0b1d34"/>
+
+  <!-- Cuerpo del cohete (color texto) -->
+  <path d="M32 10c5 6 7 12 7 18v6l6 6-6 2v6l-7 7-7-7v-6l-6-2 6-6v-6c0-6 2-12 7-18z"
+        fill="#d0f0ff"/>
+
+  <!-- Ventana/acento (cian brillante) -->
+  <circle cx="32" cy="28" r="3.2" fill="#00e6ff"/>
+
+  <!-- Llama (morado) -->
+  <path d="M32 47l-4 7 4-2 4 2-4-7z" fill="#9d4edd"/>
+</svg>
