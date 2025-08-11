@@ -264,7 +264,54 @@ Vue 3 + TypeScript
 
 ---
 
-## 13) Production Considerations
+## 13) Visual Evidence - Application Screenshots
+
+The following screenshots demonstrate the complete functionality of the SpaceX Analytics Solution:
+
+### Dashboard View
+![Dashboard](frontend/public/screenshots/dashboard.png)
+
+**Features demonstrated:**
+- Real-time KPI metrics from `/api/dashboard`
+- Mission timeline with dynamic year filtering
+- Success vs failed launches pie chart (97% success rate)
+- Starlink satellite count (3,268 satellites)
+- Launch timeline visualization using live data
+- Three.js rocket fleet comparison (3D bars)
+- Starlink network globe preview
+
+### Rockets Analysis View
+![Rockets](frontend/public/screenshots/rockets.png)
+
+**Features demonstrated:**
+- **Three.js 3D rocket comparison chart** (height vs mass)
+- Interactive search by rocket name
+- "Show Active Only" filtering connected to `/api/rockets?active=true`
+- Launch timeline chart using `/api/launches` data
+- Rocket height comparison bar chart
+- Real-time data processing and visualization
+
+### Starlink Satellite Tracking
+![Starlink](frontend/public/screenshots/starlink.png)
+
+**Features demonstrated:**
+- **Three.js 3D Earth globe** with satellite positions
+- Orbital filtering: "All Satellites", "Polar Orbits", "Geostationary"
+- Real-time satellite tracking (50/50 visible indicator)
+- Interactive 3D navigation and controls
+- Live satellite data from `/api/starlink` with orbital parameters
+
+### Technical Highlights Visible in Screenshots
+- **Consistent UI/UX**: Futuristic SpaceX-themed design with cyan/blue color scheme
+- **Responsive Layout**: Clean grid layout with proper spacing
+- **Interactive Elements**: Buttons, filters, and navigation working seamlessly
+- **Data Integration**: All charts and metrics pulling from live API endpoints
+- **Performance**: Smooth Three.js rendering with proper frame rates
+- **Typography**: Professional Orbitron font matching SpaceX branding
+
+---
+
+## 14) Production Considerations
 - **Environment variables**: Currently hardcoded `localhost:8000`, should use env vars
 - **Error boundaries**: Add React-style error handling for failed API calls
 - **Monitoring**: Add logging and metrics for API performance
@@ -272,4 +319,3 @@ Vue 3 + TypeScript
 - **Caching**: Consider Redis for distributed cache in production
 
 ---
-
