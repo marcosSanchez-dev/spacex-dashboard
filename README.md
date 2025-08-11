@@ -1,6 +1,4 @@
-Aquí tienes el README.md completo listo para copiar y pegar directamente en tu repositorio:
 
-```markdown
 # SpaceX Analytics Solution — Technical Document (B1 English, v6.1)
 
 **Author:** Marcos Sanchez • **Date:** 2025-08-11 (UTC)
