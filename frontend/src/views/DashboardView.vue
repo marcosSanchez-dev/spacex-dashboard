@@ -123,7 +123,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import { RouterLink } from "vue-router";
-import { useSpaceX, fetchLaunches } from "../composables/useSpaceX";
+import { useSpaceX } from "../composables/useSpaceX";
 import SuccessPie from "../components/SuccessPie.vue";
 import AnimatedCounter from "../components/AnimatedCounter.vue";
 import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
@@ -150,6 +150,7 @@ const {
   starlink,
   fetchRockets,
   fetchStarlink,
+  fetchLaunches,
 } = useSpaceX();
 
 // Función para resetear el filtro
