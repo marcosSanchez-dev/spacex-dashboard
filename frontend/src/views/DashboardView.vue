@@ -74,16 +74,12 @@
       <!-- Nueva columna: Timeline de lanzamientos -->
       <div class="timeline-column">
         <RouterLink to="/rockets" class="timeline-panel glow-box link-card">
-          <!-- Cambio aquí -->
           <h3 class="panel-title">📅 LAUNCH TIMELINE</h3>
           <div class="timeline-container">
-            <!-- Contenedor añadido -->
-            <LaunchTimeline :key="'timeline-' + resizeKey" />
+            <LaunchTimeline :data="launchData" :key="'timeline-' + resizeKey" />
           </div>
           <div class="click-hint">Click anywhere to explore rockets →</div>
-          <!-- Añadido -->
         </RouterLink>
-        <!-- Cambio aquí -->
       </div>
 
       <!-- Columna central: Visualización de cohetes -->
@@ -127,7 +123,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import { RouterLink } from "vue-router";
-import { useSpaceX } from "../composables/useSpaceX";
+import { useSpaceX, fetchLaunches } from "../composables/useSpaceX";
 import SuccessPie from "../components/SuccessPie.vue";
 import AnimatedCounter from "../components/AnimatedCounter.vue";
 import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
@@ -141,6 +137,9 @@ const rocketFilter = ref("");
 const rocketYearFilter = ref(new Date().getFullYear());
 const activeOrbitType = ref<string | null>(null);
 const resizeKey = ref(0); // Clave para forzar re-render al redimensionar
+
+// Datos dinámicos para timeline
+const launchData = ref<any[]>([]);
 
 // Usamos el composable para obtener los métodos y estados
 const {
@@ -162,6 +161,41 @@ const resetFilter = () => {
 function handleResize() {
   resizeKey.value++;
 }
+
+// Función para procesar lanzamientos (agrupar por año)
+const processLaunches = (launches: any[]) => {
+  const byYear: Record<number, any[]> = {};
+  launches.forEach((launch) => {
+    const year = new Date(launch.date_utc).getFullYear();
+    if (!byYear[year]) {
+      byYear[year] = [];
+    }
+    byYear[year].push(launch);
+  });
+
+  return Object.keys(byYear)
+    .map((yearStr) => {
+      const year = parseInt(yearStr);
+      return {
+        year,
+        launches: byYear[year],
+        count: byYear[year].length,
+      };
+    })
+    .sort((a, b) => a.year - b.year); // Ordenar por año ascendente
+};
+
+// Cargar datos de lanzamientos
+const loadLaunches = async () => {
+  try {
+    const response = await fetchLaunches();
+    const allLaunches = response.data;
+    launchData.value = processLaunches(allLaunches);
+  } catch (err) {
+    console.error("Error loading launches", err);
+    error.value = "Failed to load launch data";
+  }
+};
 
 // Datos históricos reales de SpaceX (actualizados a 2023)
 const spacexHistoricalData = {
@@ -489,6 +523,9 @@ onMounted(async () => {
   if (!starlink.value || starlink.value.length === 0) {
     await fetchStarlink();
   }
+
+  // Cargar datos de lanzamientos para timeline
+  await loadLaunches();
 
   // Agregar listener para redimensionamiento
   window.addEventListener("resize", handleResize);
