@@ -1,4 +1,4 @@
-# SpaceX Analytics Solution — Technical Notebook 
+# SpaceX Analytics Solution — Technical Notebook
 **Author:** Marcos Sanchez • **Date:** 2025-08-11 (UTC)
 
 This document explains my project in simple English. It is for the QuadSci panel.
@@ -25,6 +25,7 @@ This document explains my project in simple English. It is for the QuadSci panel
 - **D3.js**: flexible charts. If needed, I can switch to Chart.js.
 - **Cache 5 min (TTL)**: less calls to SpaceX and faster answers.
 - **Server filters + pagination**: smaller responses, easier for the browser.
+- **Easy to grow**: add Redis cache or auth later **without** rewriting most code.
 
 ## 4) How to run
 ### Backend
@@ -48,9 +49,11 @@ npm run dev
 ```
 
 ### Notebook
-File: `notebooks/QuadSci_SpaceX_Notebook_MarcosSanchez_B1.ipynb`  
-- You can run **online** (use real API) or **offline** with `MOCK_MODE=True`.
-- The notebook saves JSON to `outputs/` for quick tests.
+File: `notebooks/spacex_data_pipeline.ipynb` (same content as the main notebook)  
+- **For data scientists**: run all transformations step by step.  
+- **Two modes**:
+  - Online (real SpaceX API)
+  - Offline (`MOCK_MODE=True` uses embedded samples and writes saved JSON to `outputs/`).
 
 ## 5) Data steps (simple)
 - Normalize fields (for example, `height.meters` → `height_m`).
@@ -60,9 +63,9 @@ File: `notebooks/QuadSci_SpaceX_Notebook_MarcosSanchez_B1.ipynb`
 - For Starlink: min/max/avg altitude and count of decayed satellites.
 
 ## 6) Charts idea
-- **Dashboard**: launches per year + success rate.
-- **Rockets**: compare height and mass per rocket.
-- **Starlink**: histogram by altitude (or simple map later).
+- **Dashboard**: launches per year (**line chart**) + success rate (**pie chart**).
+- **Rockets**: **bar chart** comparing height and mass per rocket.
+- **Starlink**: **altitude histogram** (bar chart).
 
 ## 7) Quick test (cURL)
 ```bash
