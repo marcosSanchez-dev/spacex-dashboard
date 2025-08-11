@@ -1,169 +1,158 @@
-# SpaceX Analytics Solution — Technical Notebook (for QuadSci)
-**Author:** Marcos Sánchez • **Date:** 2025-08-10 (UTC)
+# SpaceX Analytics Solution — Technical Notebook (Adjusted for QuadSci AI/ML)
+**Author:** Marcos Sánchez • **Date:** 2025-08-11 (UTC)
 
-This document complements the Jupyter notebook and codebase. It explains my **architecture**, **design trade‑offs**, **challenges & solutions**, and **setup** so reviewers can quickly understand the approach.
+> This adjusted notebook README emphasizes **AI/ML reviewer needs** (reproducibility, data‑centric thinking, and actionable insights) while keeping everything practical for the panel walkthrough.
+
+---
+
+## 0) Why this format (for an AI/ML org like QuadSci)
+- **Reproducible analysis:** Jupyter notebook with online/offline modes and exported artifacts.
+- **Separation of concerns:** Clean API layer + data transformations + FE visualizations.
+- **Reviewer-friendly:** Single README (PDF‑friendly), cURL snippets, and a 90‑min walkthrough plan.
 
 ---
 
 ## 1) Architecture Overview
-**Goal:** Fetch SpaceX data (Rockets, Launches, Starlink), process it into meaningful summaries, and expose it via a **FastAPI** backend for a **Vue 3 + D3.js** frontend.
+- **Backend:** Python 3.13 + FastAPI (async `httpx`), TTL cache (5 min), filters/pagination, consistent error handling.
+- **Frontend:** Vue 3 + Vite; D3.js for flexible, interactive charts (timeline, comparisons).
+- **Notebook (.ipynb):** Mirrors backend transformations and exports sample JSON to `outputs/`.
 
-### High-level
-- **Backend:** Python 3.13 + FastAPI (async `httpx`), TTL cache (5 min), consistent pagination & filters.
-- **Frontend:** Vue 3 + Vite; D3.js for flexible visualizations (barcharts, timelines; optional Starlink histograms).
-- **Notebook (.ipynb):** Reproducible data pipeline mirroring backend transformations, with sample JSON exports in `outputs/` and quick visual checks.
-
-### Key Endpoints (mirrored in notebook)
-- `GET /api/dashboard` — KPIs, launches per year, success rates, top rocket.
-- `GET /api/rockets` — normalized specs; optional `active` filter; pagination.
-- `GET /api/launches` — filters (`year`, `success`), sorting, pagination, and success-rate stats.
+### Endpoints
+- `GET /api/dashboard` — KPIs, launches/year, success rates, top rocket.
+- `GET /api/rockets` — normalized specs; `active` filter; pagination.
+- `GET /api/launches` — `year`, `success`, sorting by date; pagination; success-rate stat.
 - `GET /api/starlink` — altitude/inclination filters; pagination; summary stats.
 
-### Suggested Repo Layout
+---
+
+## 2) Design Decisions & Trade‑offs (condensed)
+- **FastAPI vs Flask:** chose FastAPI for async and auto‑docs; trade‑off: async learning curve.
+- **TTL in‑memory cache → Redis (next):** simple now; upgrade path for distributed deployments.
+- **D3.js primary:** full control for custom timelines/overlays; fallback: Chart.js for speed.
+- **Server‑side pagination/filters:** protects FE; adds clarity and performance.
+- **Normalization:** stabilize fields (e.g., `altitude_km` vs. `height_km`) once in services.
+
+---
+
+## 3) Notebook: Motor de Análisis para QuadSci
+Diseñado pensando en científicos de datos y revisores técnicos:
+- `MOCK_MODE=True` para ejecución **offline** con muestras integradas.
+- **Exportación reproducible** de artefactos: `outputs/*.json` (payloads idénticos a la API).
+- **Checks visuales** rápidos (matplotlib) para validar tendencias (no son los gráficos finales del FE).
+
+**Opcionales orientados a AI/ML (si el panel lo pide):**
+- **Validaciones estadísticas** ligeras (p. ej., comparar tasas de éxito por período con una prueba sencilla).
+- **Export a formatos columnar** (Parquet/Feather) además de JSON para flujos analíticos.
+- **Métricas derivadas** (features) que ayuden a explicar variaciones de calidad en el tiempo.
+
+---
+
+## 4) Transformaciones clave y Features
+> Las siguientes transformaciones explican cómo paso de datos crudos a **insights accionables**. Algunas se implementan ya; otras se incluyen como **extensiones** razonadas para la discusión.
+
+- **Normalización:** campos anidados a planos (e.g., `height.meters → height_m`), y nombres consistentes (`altitude_km`).
+- **Agregaciones temporales:** lanzamientos por año y **success_rate_by_year**.
+- **Top rocket por desempeño:** ranking por tasa de éxito con tamaño de muestra.
+- **Starlink stats:** mínimos/máximos/promedio de altitud, conteo de decayed.
+
+**Extensiones (documentadas, implementables según alcance):**
+- *Tendencia 5 años (`success_rate_5y`):* media móvil para detectar regresiones.
+- *Índice payload‑cost (`payload_mass_index`):* (masa / costo) para comparar ROI por cohete.
+- *Transformaciones espaciales (si aplica dataset):* conversión de coordenadas y limpieza de outliers.
+```python
+# Ejemplo ilustrativo de feature temporal (media móvil 5 años):
+def moving_success_rate_by_year(records, window=5):
+    # records: [{'year': 2020, 'success_rate': 0.9}, ...]
+    out = []
+    for i in range(len(records)):
+        start = max(0, i - window + 1)
+        window_slice = [r['success_rate'] for r in records[start:i+1] if r.get('success_rate') is not None]
+        out.append({'year': records[i]['year'], 'success_rate_5y': (sum(window_slice)/len(window_slice)) if window_slice else None})
+    return out
 ```
-spacex-analytics/
-├─ backend/
-│  ├─ api/ (routers)
-│  ├─ services/ (business logic; SpaceX client)
-│  ├─ main.py
-│  └─ requirements.txt
-├─ frontend/
-│  ├─ src/{views,components,composables,router}
-│  ├─ index.html
-│  └─ package.json
-├─ notebooks/
-│  └─ QuadSci_SpaceX_Notebook_MarcosSanchez.ipynb
-└─ README.md
+---
+
+## 5) Visualizaciones orientadas a acción (Frontend)
+| Vista         | Gráfico                      | Insight de negocio                         |
+|---------------|------------------------------|--------------------------------------------|
+| Dashboard     | Success Rate Timeline        | Detectar regresiones en calidad            |
+| Rockets       | Coste/kg a LEO (comparativo) | ROI técnico por modelo de cohete           |
+| Launches      | Frecuencia por año + éxito   | Ritmo operativo y fiabilidad               |
+| Starlink      | Histograma altitud/heatmap   | Densidad orbital y bandas a optimizar      |
+
+> Nota: En el FE actual se priorizan timeline de lanzamientos y comparativas de specs. Los gráficos propuestos amplían el *storytelling* si el panel quiere mayor énfasis en decisión/ROI.
+
+---
+
+## 6) Flujo de datos (de la fuente al insight)
+```mermaid
+graph LR
+A[SpaceX API] --> B[Backend]
+B --> C[TTL Cache 5 min]
+B --> D[Notebook]
+D --> E[JSON/Parquet]
+B --> F[Frontend]
+F --> G[D3.js]
+G --> H[Business Insights]
 ```
 
 ---
 
-## 2) Key Design Decisions & Trade‑offs
-1. **FastAPI over Flask**
-   - *Why:* Built-in OpenAPI docs, async-first, great DX for rapid iteration.
-   - *Trade-off:* Slight learning curve for async patterns, but aligns with scalability.
-
-2. **TTL in-memory Cache (5 min)**
-   - *Why:* Simple, fast, and reduces calls to public API.
-   - *Trade-off:* Not shared across instances. **Future:** Redis for distributed cache and warmup jobs.
-
-3. **D3.js as primary charts**
-   - *Why:* Full control for custom scales/interactions; good for timeline and comparative charts.
-   - *Trade-off:* More code vs. Chart.js. **Fallback:** swap to Chart.js for quicker delivery.
-
-4. **Server Pagination + Filters**
-   - *Why:* Consistent API contract, protects FE from large payloads (especially Starlink).
-   - *Trade-off:* Slightly more backend logic; worth it for performance and clarity.
-
-5. **Normalization at the Service Layer**
-   - *Why:* SpaceX fields vary (`altitude_km` vs `height_km`, nested values). Normalize once; FE stays simple.
-   - *Trade-off:* Needs schema discipline and tests.
-
-6. **Error Handling & Status Codes**
-   - *Why:* Reviewers see predictable responses; FE can show friendly messages.
-   - *Trade-off:* Extra effort to define error shapes; improves debuggability.
-
----
-
-## 3) Challenges & Solutions
-- **Inconsistent / evolving fields (Starlink)**  
-  *Solution:* Normalization helpers (`normalize_starlink`, fallbacks for `altitude_km`/`height_km`).
-
-- **Large datasets & rate-limits**  
-  *Solution:* TTL cache, pagination, and ability to **run offline** using notebook `MOCK_MODE` for demos.
-
-- **CORS / local dev friction**  
-  *Solution:* Wide-open CORS in dev; restrict by origin in prod.
-
-- **Time-based aggregations (launches per year, success)**  
-  *Solution:* Dedicated functions; covered with simple sanity plots in the notebook.
-
-- **Reproducibility for AI/ML reviewers**  
-  *Solution:* Jupyter notebook that mirrors backend transformations and exports stable JSON artifacts.
-
----
-
-## 4) Setup Instructions
-### Backend (FastAPI)
+## 7) Setup rápido
+### Backend
 ```bash
-# From project root
 cd backend
 python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS/Linux
-# source venv/bin/activate
-
+# Win: venv\\Scripts\\activate   # macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 # Swagger: http://localhost:8000/api/docs
 ```
 
-### Frontend (Vue 3 + Vite)
+### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
-# App: http://localhost:5173
-# Ensure .env has VITE_BACKEND_URL=http://localhost:8000
+# http://localhost:5173  (VITE_BACKEND_URL=http://localhost:8000)
 ```
 
 ### Notebook
-- File: `notebooks/QuadSci_SpaceX_Notebook_MarcosSanchez.ipynb` (included in this delivery too).
-- Modes: set `MOCK_MODE=True` for offline or `False` for live SpaceX API.
-- Artifacts: JSON exports saved under `outputs/`
-
-> The same transformations drive both the notebook and the backend to keep results consistent.
+- `notebooks/QuadSci_SpaceX_Notebook_MarcosSanchez.ipynb`
+- `MOCK_MODE=True/False` según conectividad
+- Artefactos: `outputs/*.json`
 
 ---
 
-## 5) Usage Examples (cURL)
+## 8) cURL de validación
 ```bash
-# Dashboard
 curl http://localhost:8000/api/dashboard
-
-# Rockets (only active; page 1; 10 per page)
 curl "http://localhost:8000/api/rockets?active=true&page=1&limit=10"
-
-# Launches (2020 only; sorted desc)
 curl "http://localhost:8000/api/launches?year=2020&sort=date&dir=desc&page=1&limit=50"
-
-# Starlink (500–600km band)
 curl "http://localhost:8000/api/starlink?min_altitude=500&max_altitude=600&page=1&limit=50"
 ```
 
 ---
 
-## 6) Testing & Quality
-- **Manual:** Notebook sanity plots for launches/year and starlink altitude distribution.
-- **Automatable (next step):** Pytest for normalization, filtering, pagination, and success-rate math.
-- **Performance note:** With cache enabled, repeat calls return in milliseconds locally.
+## 9) Walkthrough de 90 min (resumen)
+1) Contexto y objetivos (5m) → datos, usuarios, decisiones.  
+2) Backend (25m) → `/api/docs`, filtros/paginación, cache.  
+3) Notebook (15m) → transformaciones; mock vs live; artefactos.  
+4) Frontend (25m) → vistas, gráficos, errores y loading.  
+5) Q&A (20m) → extensiones (Redis, auth, workers, tests).
 
 ---
 
-## 7) Panel Walk‑through (90‑min Guide)
-1. **Context (5m):** Problem, users, and data sources.
-2. **Backend (25m):** Live demo of `/api/docs`, filters/pagination, cache behavior.
-3. **Notebook (15m):** Show transformations; compare mock vs live; open `outputs/*.json`.
-4. **Frontend (25m):** Views, charts, filters, error states.
-5. **Q&A (20m):** Trade-offs, extensibility (Redis, auth, workers), tests.
+## 10) Exportar a PDF (recomendado)
+- Este README es **PDF‑friendly** (texto y bloques de código).  
+- Alternativas:
+  - VS Code: extensión “Markdown PDF” o “Print → Save as PDF” desde GitHub.
+  - Notebook: `jupyter nbconvert --to html ...` y luego imprimir a PDF.
 
 ---
 
-## 8) Converting to PDF
-- **Why PDF?** Universal for reviewers; easy to annotate.
-- **How:**  
-  - Export this Markdown to PDF via VS Code (“Markdown PDF” extension) or your browser’s “Print → Save as PDF” on a GitHub-rendered page.  
-  - Export the Jupyter notebook to PDF/HTML using **nbconvert**:  
-    ```bash
-    jupyter nbconvert --to html notebooks/QuadSci_SpaceX_Notebook_MarcosSanchez.ipynb
-    # Then print the HTML to PDF
-    ```
+## 11) Estado actual vs. mejoras
+- **Cumplido**: endpoints, normalización + agregaciones, cache TTL, filtros/paginación, notebook reproducible, README claro, cURL y demo plan.
+- **Mejoras rápidas** (si el panel quiere más AI): validaciones ligeras, features temporales, export a Parquet.
 
----
-
-## 9) Future Enhancements
-- Redis cache + scheduled warmup jobs.
-- Auth (JWT) and basic rate limiting.
-- More charts (success by rocket over time, failure reasons if available).
-- CI pipeline with tests & linting.
+— Fin —
