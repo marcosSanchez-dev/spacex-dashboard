@@ -1,8 +1,8 @@
 # SpaceX Analytics Solution — Technical Document
-**Author:** Marcos Sanchez • **Date:** 2025-08-18 (UTC)  
-**Latest Updates:** Filtros extendidos, D3.js visualizations, Resiliencia mejorada
+**Author:** Marcos Sanchez 
+**Latest Updates:** Extended filters, D3.js visualizations, Improved resilience
 
-Esta versión cumple con los requisitos de la prueba técnica de QuadSci (Full Stack Engineer Technical Exercise).
+This version meets the requirements of the QuadSci Full Stack Engineer Technical Exercise.
 
 ---
 
@@ -107,7 +107,7 @@ Esta versión cumple con los requisitos de la prueba técnica de QuadSci (Full S
   "data": [
     {
       "id": "5eed7715096e5900069857d1",
-      "inclination_deg": 53.0  // Normalized field
+      "inclination_deg": 53.0
     }
   ]
 }
@@ -184,11 +184,58 @@ C --> F[Decayed count]
 ---
 
 ## 10) Notes for QuadSci Review Panel
-1. Todos los endpoints requeridos implementados
-2. Visualizaciones D3.js integradas para comparación de cohetes
-3. Mecanismo de reintentos con backoff exponencial
-4. Filtros de UI conectados al backend
-5. Normalización de datos Starlink (sin datos demo)
-6. Panel de timeline ahora usa datos en tiempo real
+1. All required endpoints implemented
+2. D3.js visualizations integrated for rocket comparison
+3. Retry mechanism with exponential backoff
+4. UI filters connected to backend
+5. Starlink data normalized (no demo data)
+6. Timeline panel now uses live data
+
+---
+
+## Design Decisions
+- **Three.js for Starlink**: Native, high-performance 3D rendering for interactive globes. D3.js is primarily 2D.
+- **TTLCache (in-memory)**: Simplifies local review without additional infrastructure. In production, Redis or similar could be used.
+- **Tenacity retries**: Exponential backoff increases resilience against upstream API hiccups.
+- **Server-side normalization**: Ensures consistent naming (`inclination_deg`, `altitude_km`) across frontend and backend.
+
+## Challenges & Solutions
+- **Starlink field variability**: Some items lacked consistent fields.  
+  **Solution**: Normalize in service layer to ensure all have `inclination_deg` and `altitude_km`.
+- **Intermittent upstream failures**: Caused occasional API errors.  
+  **Solution**: Implemented `tenacity` retries and cache fallback.
+- **Timeline drift**: Static data became outdated.  
+  **Solution**: Drive timeline from `/api/launches` real-time data.
+
+## Screenshots (Reviewer Friendly)
+Include these images in `frontend/public/screenshots/`:
+- `dashboard.png`
+- `rockets.png`
+- `starlink.png`
+
+Example in README:
+```markdown
+### Visual Evidence
+![Dashboard](frontend/public/screenshots/dashboard.png)
+![Rockets](frontend/public/screenshots/rockets.png)
+![Starlink](frontend/public/screenshots/starlink.png)
 ```
 
+## QuadSci Notebook (Executable)
+A Jupyter Notebook (`spacex_quadsci_notebook.ipynb`) is provided with Markdown explanations and Python code cells to call all API endpoints.  
+Requirements to run:
+- Backend running locally at `http://localhost:8000`
+
+---
+
+## Reviewer Checklist
+| Requirement | Status |
+|-------------|--------|
+| Architecture explanation (backend/frontend) | ✅ |
+| Endpoints details (request/response examples) | ✅ |
+| Config and how to run | ✅ |
+| QuadSci coverage | ✅ |
+| **Screenshots** | ⬜ |
+| **Design Decisions** | ✅ |
+| **Challenges & Solutions** | ✅ |
+| **Executable Notebook** | ✅ |
