@@ -1,5 +1,5 @@
 # SpaceX Analytics Solution — Technical Document
-**Author:** Marcos Sanchez
+**Author:** Marcos Sanchez 
 **Latest Updates:** Extended filters, D3.js visualizations, Improved resilience
 
 This version meets the requirements of the QuadSci Full Stack Engineer Technical Exercise.
