@@ -130,7 +130,7 @@ const filteredRockets = computed(() => {
     .map((r) => ({
       id: r.id,
       name: r.name,
-      height: r.height,
+      height: r.height, // Mantenemos el objeto completo
       mass: r.mass,
       first_flight: r.first_flight,
       success_rate: r.success_rate,
@@ -138,9 +138,13 @@ const filteredRockets = computed(() => {
     }));
 });
 
-watch(filteredRockets, () => {
-  nextTick(renderChart);
-});
+watch(
+  filteredRockets,
+  () => {
+    nextTick(renderChart);
+  },
+  { deep: true }
+);
 
 function renderChart() {
   if (!rocketChart.value || filteredRockets.value.length === 0) return;
@@ -160,15 +164,30 @@ function renderChart() {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
+  // Función para obtener el valor de altura correcto
+  const getHeightValue = (rocket: any) => {
+    if (typeof rocket.height === "number") {
+      return rocket.height;
+    } else if (rocket.height && typeof rocket.height === "object") {
+      return rocket.height.meters || 0;
+    }
+    return 0;
+  };
+
+  // Preparar datos con la altura correcta
+  const chartData = filteredRockets.value.map((d) => ({
+    ...d,
+    heightValue: getHeightValue(d),
+  }));
+
   // Escalas
   const x = d3
     .scaleBand()
-    .domain(filteredRockets.value.map((d) => d.name))
+    .domain(chartData.map((d) => d.name))
     .range([0, width])
     .padding(0.2);
 
-  const maxHeight =
-    d3.max(filteredRockets.value, (d) => d.height.meters) || 100;
+  const maxHeight = d3.max(chartData, (d) => d.heightValue) || 100;
   const y = d3
     .scaleLinear()
     .domain([0, maxHeight + 10])
@@ -200,14 +219,14 @@ function renderChart() {
   // Barras
   svg
     .selectAll(".bar")
-    .data(filteredRockets.value)
+    .data(chartData)
     .enter()
     .append("rect")
     .attr("class", "bar")
     .attr("x", (d) => x(d.name) || 0)
-    .attr("y", (d) => y(d.height.meters))
+    .attr("y", (d) => y(d.heightValue))
     .attr("width", x.bandwidth())
-    .attr("height", (d) => height - y(d.height.meters))
+    .attr("height", (d) => height - y(d.heightValue))
     .attr("fill", (d) => (d.active ? "#00e6ff" : "#4a6fa5"))
     .attr("rx", 4)
     .attr("ry", 4);
@@ -215,16 +234,16 @@ function renderChart() {
   // Etiquetas de valor
   svg
     .selectAll(".label")
-    .data(filteredRockets.value)
+    .data(chartData)
     .enter()
     .append("text")
     .attr("class", "label")
     .attr("x", (d) => (x(d.name) || 0) + x.bandwidth() / 2)
-    .attr("y", (d) => y(d.height.meters) - 5)
+    .attr("y", (d) => y(d.heightValue) - 5)
     .attr("text-anchor", "middle")
     .style("fill", "#ffffff")
     .style("font-size", "12px")
-    .text((d) => d.height.meters + "m");
+    .text((d) => (d.heightValue ? `${d.heightValue.toFixed(1)}m` : "N/A"));
 }
 </script>
 
