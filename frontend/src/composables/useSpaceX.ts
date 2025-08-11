@@ -1,12 +1,13 @@
-// src/composables/useSpaceX.ts
 import axios from "axios";
 import { ref } from "vue";
 
-const BASE_URL = "http://localhost:8000"; // o tu URL de backend
+const BASE_URL = "http://localhost:8000";
 
 export function useSpaceX() {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const rockets = ref<any[]>([]);
+  const starlink = ref<any[]>([]);
 
   const fetchData = async <T = any>(endpoint: string): Promise<T | null> => {
     isLoading.value = true;
@@ -23,9 +24,27 @@ export function useSpaceX() {
     }
   };
 
+  const fetchRockets = async () => {
+    const data = await fetchData<{ data: any[] }>("/api/rockets");
+    if (data) {
+      rockets.value = data.data || [];
+    }
+  };
+
+  const fetchStarlink = async () => {
+    const data = await fetchData<{ data: any[] }>("/api/starlink");
+    if (data) {
+      starlink.value = data.data || [];
+    }
+  };
+
   return {
     fetchData,
     isLoading,
     error,
+    rockets,
+    starlink,
+    fetchRockets,
+    fetchStarlink,
   };
 }

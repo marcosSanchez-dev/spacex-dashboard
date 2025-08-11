@@ -1,32 +1,55 @@
-from fastapi import APIRouter
-import requests
+from fastapi import APIRouter, Query, HTTPException
+from services.spacex_service import get_spacex_data
 
 router = APIRouter()
 
-@router.get("/api/starlink")
-def get_starlink():
+@router.get("/starlink")
+async def get_starlink(
+    limit: int = Query(50, ge=1, le=100, description="Límite de resultados"),
+    page: int = Query(1, ge=1, description="Número de página"),
+    altitude_min: float = Query(None, description="Altitud mínima (km)"),
+    inclination_min: float = Query(None, description="Inclinación mínima (grados)")
+):
     try:
-        response = requests.get("https://api.spacexdata.com/v4/starlink")
-        response.raise_for_status()
-        satellites = response.json()
-
-        # Tomamos los primeros 50 como ejemplo para el frontend (es mucho dato)
-        limited = satellites[:50]
-
-        processed = [
-            {
-                "id": sat.get("spaceTrack", {}).get("OBJECT_ID"),
-                "name": sat.get("spaceTrack", {}).get("OBJECT_NAME"),
-                "launch_date": sat.get("spaceTrack", {}).get("LAUNCH_DATE"),
+        satellites = await get_spacex_data("starlink")
+        
+        # Filtrar
+        filtered = satellites
+        if altitude_min is not None:
+            filtered = [s for s in filtered if s.get("height_km", 0) >= altitude_min]
+        if inclination_min is not None:
+            filtered = [s for s in filtered if s.get("spaceTrack", {}).get("INCLINATION", 0) >= inclination_min]
+        
+        # Paginación
+        start = (page - 1) * limit
+        paginated = filtered[start:start + limit]
+        
+        # Procesar datos
+        processed = []
+        for sat in paginated:
+            processed.append({
+                "id": sat["id"],
+                "name": sat.get("spaceTrack", {}).get("OBJECT_NAME", "Desconocido"),
+                "launch_date": sat.get("spaceTrack", {}).get("LAUNCH_DATE", ""),
                 "longitude": sat.get("longitude"),
                 "latitude": sat.get("latitude"),
                 "altitude_km": sat.get("height_km"),
+                "velocity_kms": sat.get("velocity_kms"),
                 "inclination": sat.get("spaceTrack", {}).get("INCLINATION"),
+                "decayed": sat.get("spaceTrack", {}).get("DECAY_DATE") is not None
+            })
+        
+        return {
+            "data": processed,
+            "pagination": {
+                "total": len(filtered),
+                "page": page,
+                "per_page": limit,
+                "total_pages": (len(filtered) + limit - 1) // limit
             }
-            for sat in limited
-        ]
-
-        return processed
-
-    except requests.exceptions.RequestException:
-        return {"error": "No se pudo obtener información de Starlink"}
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en Starlink: {str(e)}"
+        )
