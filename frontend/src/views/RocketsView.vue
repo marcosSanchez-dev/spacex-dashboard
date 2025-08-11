@@ -31,14 +31,26 @@
     </transition>
 
     <div class="dashboard-content">
-      <!-- Buscador -->
-      <div class="search-box glow-box">
-        <input
-          v-model="filter"
-          type="text"
-          placeholder="Search by rocket name..."
-          class="search-input"
-        />
+      <!-- Buscador y Filtros -->
+      <div class="filters-container">
+        <div class="search-box glow-box">
+          <input
+            v-model="filter"
+            type="text"
+            placeholder="Search by rocket name..."
+            class="search-input"
+          />
+        </div>
+
+        <!-- ✅ Filtro conectado al backend -->
+        <div class="filter-buttons">
+          <button
+            @click="toggleActiveFilter"
+            :class="['filter-button', { active: showActiveOnly }]"
+          >
+            {{ showActiveOnly ? "Active Rockets" : "Show Active Only" }}
+          </button>
+        </div>
       </div>
 
       <!-- Gráfico de timeline -->
@@ -62,25 +74,53 @@
           <Rocket3DBarChart :data="filteredRockets" class="glow-chart" />
         </div>
       </div>
+
+      <!-- ✅ Gráfico D3 simple (altura de cohetes) -->
+      <div class="d3-section">
+        <div class="section-header">
+          <div class="section-icon">📊</div>
+          <h2>ROCKET HEIGHT COMPARISON</h2>
+        </div>
+        <div class="d3-chart-container glow-box">
+          <div ref="rocketChart" class="d3-chart"></div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch, nextTick } from "vue";
 import { useSpaceX } from "../composables/useSpaceX";
 import Rocket3DBarChart from "../components/Rocket3DBarChart.vue";
 import LaunchTimeline from "../components/LaunchTimeline.vue";
 import { RouterLink } from "vue-router";
+import * as d3 from "d3";
 
 const rockets = ref<any[]>([]);
 const filter = ref("");
+const rocketChart = ref<HTMLElement | null>(null);
+const showActiveOnly = ref(false);
 const { fetchData, isLoading, error } = useSpaceX();
 
 onMounted(async () => {
-  const response = await fetchData<{ data: any[] }>("/api/rockets");
-  rockets.value = response?.data || [];
+  await loadRockets();
+  nextTick(renderChart);
 });
+
+const toggleActiveFilter = () => {
+  showActiveOnly.value = !showActiveOnly.value;
+  loadRockets();
+};
+
+async function loadRockets() {
+  const endpoint = showActiveOnly.value
+    ? "/api/rockets?active=true"
+    : "/api/rockets";
+
+  const response = await fetchData<{ data: any[] }>(endpoint);
+  rockets.value = response?.data || [];
+}
 
 const filteredRockets = computed(() => {
   return rockets.value
@@ -94,8 +134,98 @@ const filteredRockets = computed(() => {
       mass: r.mass,
       first_flight: r.first_flight,
       success_rate: r.success_rate,
+      active: r.active,
     }));
 });
+
+watch(filteredRockets, () => {
+  nextTick(renderChart);
+});
+
+function renderChart() {
+  if (!rocketChart.value || filteredRockets.value.length === 0) return;
+
+  // Limpiar el contenedor antes de renderizar
+  d3.select(rocketChart.value).selectAll("*").remove();
+
+  const margin = { top: 20, right: 20, bottom: 50, left: 60 };
+  const width = rocketChart.value.clientWidth - margin.left - margin.right;
+  const height = 300 - margin.top - margin.bottom;
+
+  const svg = d3
+    .select(rocketChart.value)
+    .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Escalas
+  const x = d3
+    .scaleBand()
+    .domain(filteredRockets.value.map((d) => d.name))
+    .range([0, width])
+    .padding(0.2);
+
+  const maxHeight =
+    d3.max(filteredRockets.value, (d) => d.height.meters) || 100;
+  const y = d3
+    .scaleLinear()
+    .domain([0, maxHeight + 10])
+    .range([height, 0]);
+
+  // Ejes
+  svg
+    .append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x))
+    .selectAll("text")
+    .attr("transform", "rotate(-15)")
+    .style("text-anchor", "end")
+    .style("fill", "#80deea");
+
+  svg.append("g").call(d3.axisLeft(y).ticks(5)).style("color", "#80deea");
+
+  // Etiqueta eje Y
+  svg
+    .append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 0 - margin.left)
+    .attr("x", 0 - height / 2)
+    .attr("dy", "1em")
+    .style("text-anchor", "middle")
+    .style("fill", "#80deea")
+    .text("Height (m)");
+
+  // Barras
+  svg
+    .selectAll(".bar")
+    .data(filteredRockets.value)
+    .enter()
+    .append("rect")
+    .attr("class", "bar")
+    .attr("x", (d) => x(d.name) || 0)
+    .attr("y", (d) => y(d.height.meters))
+    .attr("width", x.bandwidth())
+    .attr("height", (d) => height - y(d.height.meters))
+    .attr("fill", (d) => (d.active ? "#00e6ff" : "#4a6fa5"))
+    .attr("rx", 4)
+    .attr("ry", 4);
+
+  // Etiquetas de valor
+  svg
+    .selectAll(".label")
+    .data(filteredRockets.value)
+    .enter()
+    .append("text")
+    .attr("class", "label")
+    .attr("x", (d) => (x(d.name) || 0) + x.bandwidth() / 2)
+    .attr("y", (d) => y(d.height.meters) - 5)
+    .attr("text-anchor", "middle")
+    .style("fill", "#ffffff")
+    .style("font-size", "12px")
+    .text((d) => d.height.meters + "m");
+}
 </script>
 
 <style scoped>
@@ -213,7 +343,8 @@ const filteredRockets = computed(() => {
 
 /* Secciones */
 .timeline-section,
-.rockets-section {
+.rockets-section,
+.d3-section {
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -243,7 +374,8 @@ const filteredRockets = computed(() => {
 
 /* Contenedores */
 .timeline-container,
-.chart-container {
+.chart-container,
+.d3-chart-container {
   background: rgba(16, 22, 58, 0.5);
   border-radius: 16px;
   border: 1px solid rgba(0, 231, 255, 0.2);
@@ -258,22 +390,76 @@ const filteredRockets = computed(() => {
   display: block;
 }
 
-.chart-container {
+.chart-container,
+.d3-chart-container {
   flex: 1;
   min-height: 400px;
+}
+
+.d3-chart {
+  width: 100%;
+  height: 300px;
+}
+
+/* Filtros */
+.filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: 1px solid rgba(0, 231, 255, 0.3);
+  background: rgba(16, 22, 58, 0.6);
+  color: #d0f0ff;
+  font-family: "Orbitron", sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 10px rgba(0, 231, 255, 0.2);
+}
+
+.filter-button:hover {
+  background: rgba(0, 231, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(0, 231, 255, 0.4);
+}
+
+.filter-button.active {
+  background: rgba(0, 231, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 231, 255, 0.6);
+  border-color: #00e6ff;
 }
 
 @media (min-width: 992px) {
   .dashboard-content {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     gap: 25px;
     height: calc(100vh - 150px);
   }
 
-  .search-box {
+  .filters-container {
     grid-column: 1 / span 2;
+    flex-direction: row;
+  }
+
+  .search-box {
+    flex: 1;
+  }
+
+  .filter-buttons {
+    align-self: center;
   }
 
   .timeline-section {
@@ -287,13 +473,19 @@ const filteredRockets = computed(() => {
     height: 100%;
   }
 
+  .d3-section {
+    grid-column: 1 / span 2;
+    grid-row: 3;
+  }
+
   .timeline-container {
     min-height: 0;
     height: 100%;
     display: flex;
   }
 
-  .chart-container {
+  .chart-container,
+  .d3-chart-container {
     min-height: 0;
     height: 100%;
     position: relative;
@@ -307,7 +499,6 @@ const filteredRockets = computed(() => {
   border-radius: 16px;
   padding: 15px;
   backdrop-filter: blur(6px);
-  margin-bottom: 5px;
 }
 
 .search-input {
@@ -431,8 +622,14 @@ const filteredRockets = computed(() => {
     height: 250px;
   }
 
-  .chart-container {
+  .chart-container,
+  .d3-chart-container {
     min-height: 350px;
+  }
+
+  .filter-button {
+    padding: 10px 15px;
+    font-size: 0.9rem;
   }
 }
 
@@ -447,7 +644,8 @@ const filteredRockets = computed(() => {
   }
 
   .timeline-container,
-  .chart-container {
+  .chart-container,
+  .d3-chart-container {
     padding: 15px;
     border-radius: 14px;
   }
@@ -456,7 +654,8 @@ const filteredRockets = computed(() => {
     height: 220px;
   }
 
-  .chart-container {
+  .chart-container,
+  .d3-chart-container {
     min-height: 300px;
   }
 }

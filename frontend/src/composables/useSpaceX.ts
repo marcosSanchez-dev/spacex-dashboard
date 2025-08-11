@@ -9,11 +9,21 @@ export function useSpaceX() {
   const rockets = ref<any[]>([]);
   const starlink = ref<any[]>([]);
 
-  const fetchData = async <T = any>(endpoint: string): Promise<T | null> => {
+  const fetchData = async <T = any>(
+    endpoint: string,
+    params?: Record<string, any>
+  ): Promise<T | null> => {
+    // ✅ Params agregado
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`${BASE_URL}${endpoint}`);
+      // ✅ Normalizar endpoint para evitar dobles barras
+      const normalizedEndpoint = endpoint.startsWith("/")
+        ? endpoint
+        : `/${endpoint}`;
+      const response = await axios.get(`${BASE_URL}${normalizedEndpoint}`, {
+        params,
+      }); // ✅ Envía params
       return response.data as T;
     } catch (err) {
       console.error("Error al obtener datos", endpoint, err);
@@ -24,18 +34,40 @@ export function useSpaceX() {
     }
   };
 
-  const fetchRockets = async () => {
-    const data = await fetchData<{ data: any[] }>("/api/rockets");
+  // ✅ Actualizada para soportar filtros
+  const fetchRockets = async (activeOnly?: boolean) => {
+    const params =
+      activeOnly !== undefined ? { active: activeOnly } : undefined;
+    const data = await fetchData<{ data: any[] }>("api/rockets", params);
     if (data) {
       rockets.value = data.data || [];
     }
   };
 
-  const fetchStarlink = async () => {
-    const data = await fetchData<{ data: any[] }>("/api/starlink");
+  // ✅ Actualizada para soportar filtros
+  const fetchStarlink = async (filters?: {
+    altitude_min?: number;
+    inclination_min?: number;
+    page?: number;
+    limit?: number;
+  }) => {
+    const data = await fetchData<{ data: any[] }>("api/starlink", filters);
     if (data) {
       starlink.value = data.data || [];
     }
+  };
+
+  // ✅ Nueva función para lanzamientos con filtros
+  const fetchLaunches = async (filters?: {
+    year?: number;
+    success?: boolean;
+    page?: number;
+    limit?: number;
+  }) => {
+    return await fetchData<{ data: any[]; pagination: any; stats: any }>(
+      "api/launches",
+      filters
+    );
   };
 
   return {
@@ -46,5 +78,6 @@ export function useSpaceX() {
     starlink,
     fetchRockets,
     fetchStarlink,
+    fetchLaunches, // ✅ Nueva función exportada
   };
 }
