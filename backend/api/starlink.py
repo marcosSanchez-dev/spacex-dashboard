@@ -23,9 +23,9 @@ async def get_starlink(
         # Filtrar
         filtered = satellites
         if altitude_min is not None:
-            filtered = [s for s in filtered if s.get("height_km", 0) >= altitude_min]
+            filtered = [s for s in filtered if (s.get("height_km") or 0) >= altitude_min]
         if inclination_min is not None:
-            filtered = [s for s in filtered if s.get("inclination_deg", 0) >= inclination_min]
+            filtered = [s for s in filtered if (s.get("inclination_deg") or 0) >= inclination_min]
         
         # Paginación
         start = (page - 1) * limit
