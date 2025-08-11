@@ -192,20 +192,3 @@ C --> F[Decayed count]
 6. Panel de timeline ahora usa datos en tiempo real
 ```
 
-Este README actualizado:
-1. Destaca el cumplimiento con los requisitos de QuadSci
-2. Documenta las nuevas funcionalidades implementadas
-3. Mantiene la estructura original pero con secciones mejoradas
-4. Incluye un mapa de cumplimiento de requisitos
-5. Actualiza las instrucciones de configuración y uso
-6. Mantiene la claridad técnica con ejemplos prácticos
-
-Los cambios clave que se reflejan son:
-- Nueva sección de "QuadSci Compliance"
-- Especificación de las mejoras implementadas
-- Actualización de los contratos de API
-- Documentación de las visualizaciones D3.js
-- Configuración mediante variables de entorno
-- Mecanismos de resiliencia mejorados
-- Eliminación de datos demo en Starlink
-- Timeline dinámico usando datos reales
