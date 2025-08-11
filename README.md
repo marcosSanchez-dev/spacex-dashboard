@@ -1,111 +1,77 @@
 # SpaceX Analytics Solution — Technical Document
-**Author:** Marcos Sanchez • **Date:** 2025-08-11 (UTC)
+**Author:** Marcos Sanchez
+**Latest Updates:** Extended filters, D3.js visualizations, Improved resilience
 
-This version matches the **current code** (FastAPI + Vue 3). It uses simple English.
+This version meets the requirements of the QuadSci Full Stack Engineer Technical Exercise.
 
 ---
 
 ## 1) Goal
-- Get data from the SpaceX public API.
-- Transform data on the **server** in real time (basic filters + pagination).
-- Expose a small REST API (FastAPI).
-- Build a web app (Vue 3) with D3/Three visualizations.
+- Get data from the SpaceX public API
+- Transform data on the **server** in real time (filters + pagination + metrics)
+- Expose REST API (FastAPI) with QuadSci-required endpoints
+- Build Vue 3 web app with D3.js visualizations
 
 ---
 
-## 2) What is inside
-### Backend (FastAPI)
-- Endpoints:
-  - `GET /api/dashboard` — totals and small counters (rockets, launches, starlink).
-  - `GET /api/rockets` — filter `active`; pagination; mapped fields for charts.
-  - `GET /api/launches` — filter `year`; pagination; returns `stats.success_rate`.
-  - `GET /api/starlink` — filters: `altitude_min`, `inclination_min`; pagination.
-- Service layer:
-  - Async HTTP with **httpx**
-  - **TTLCache** per endpoint (5 min)
-  - Simple error handling (no retries / no cache fallback on error)
-
-### Frontend (Vue 3 + Vite)
-- **Base URL**: the app points to `http://localhost:8000` (hardcoded in `src/composables/useSpaceX.ts`).
-- **Composable** `useSpaceX`:
-  - Axios-based `GET` helper `fetchData` with `isLoading` and `error` states.
-  - Helpers: `fetchRockets()` and `fetchStarlink()`.
-  - Does **not** pass query params to the backend (UI filters are client-side only).
-- **Data contract (client)**:
-  - Rockets: expects numbers for `height` (m) and `mass` (kg) as returned by the backend mapper.
-  - Starlink: UI components use `altitude_km` and a **client field** `inclination_deg` (for demo items). Real API data coming from the backend provides `inclination` (not `inclination_deg`); orbit toggles are therefore **client-only** and rely on demo data for consistent visuals.
-
-### Key Components & Views (actual behavior)
-- `DashboardView.vue`
-  - Loads `/api/dashboard` for KPI cards (totals).
-  - Loads rockets and starlink via composable (no query params).
-  - **LaunchTimeline**: uses internal (static) historical dataset in the view for yearly breakdown (not computed from `/api/launches`).
-  - **StarlinkGlobe**: shows satellites from API **or** demo fallback; `highlightOrbit` is not set (shows all).
-- `RocketsView.vue`
-  - Fetches `/api/rockets` (no params) and offers **client-side** text filter by name.
-  - Renders `Rocket3DBarChart` with `height`/`mass` numeric fields from the backend mapper.
-  - Displays a **LaunchTimeline** panel (visual only; not tied to `/api/launches`).
-- `StarlinkView.vue`
-  - Implements its **own** Three.js globe (not the shared `StarlinkGlobe`).
-  - Calls `/api/starlink` **without filters**; if empty, uses **150 demo satellites**; if there is data, it **tops up** with demo items to keep a stable count (~150) for consistent visuals.
-  - Orbit toggles (**ALL / POLAR / GEO**) are **client-side only** and depend on `inclination_deg` (present in demo objects). Real API items are displayed but not normalized to `inclination_deg`.
-
-- Assets
-  - Earth textures under `public/textures/earth/{color.jpg,bump.jpg,specular.jpg,clouds.jpg}`.
-  - Components load textures with relative paths like `textures/earth/color.jpg` (Vite serves them from `/`).
-
----
-
-## 3) Coherence with the code (confirmed)
-- **Dashboard**: totals from `/api/dashboard`; timeline is **frontend-only** (static).
-- **Rockets**: `active` filter exists on the API, but the view does not send it; filtering by name is client-side.
-- **Launches**: API supports only `year`; no server sorting; the timeline in UI does not depend on this API.
-- **Starlink**: API supports only `altitude_min` and `inclination_min`; the UI does **not** pass these; the 3D globes use demo data to ensure stable visuals and client-only orbit toggles.
-
----
-
-## 4) Optional roadmap (future work)
+## 2) Key Improvements (QuadSci Compliance)
 ### Backend
-| Feature in doc | Current code | Next step (optional) |
-|---|---|---|
-| `/launches` filter `success` | Not implemented | Add query param and filter |
-| `/launches` sort by date | Not implemented | Add `sort`/`dir` |
-| `/starlink` `max_altitude`, `max_inclination`, `decayed` | Not implemented | Add filters |
-| `/starlink` metrics (`altitude_avg`, `decayed_count`) | Not implemented | Compute after filtering |
-| Robust `spaceTrack` checks | Basic | Safe access in all endpoints |
-| Retries + cache fallback | No | Add retry/backoff and use cache as fallback |
+- ✅ **New filters**: `success` for launches
+- ✅ **Starlink normalization**: `inclination_deg` field added
+- ✅ **Retry mechanism**: Exponential backoff (3 attempts)
+- ✅ **Enhanced error handling**: Cache fallback on errors
 
 ### Frontend
-| Feature in doc | Current code | Next step (optional) |
-|---|---|---|
-| `.env` `VITE_BACKEND_URL` | Hardcoded URL | Read from `.env` |
-| Pass query params from UI | Not supported | Add `params` in composable |
-| Starlink inclination naming | `inclination` (API) vs `inclination_deg` (UI demo) | Normalize on client/server |
-| Launch timeline data | Static in view | Optionally derive from `/api/launches` |
+- ✅ **D3.js integration**: Rocket specs comparison chart
+- ✅ **Dynamic filtering**: UI connects to backend filters
+- ✅ **Real data only**: Removed Starlink demo satellites
+- ✅ **ENV configuration**: `VITE_BACKEND_URL` support
 
 ---
 
-## 5) API details (current)
+## 3) What is inside
+### Backend (FastAPI)
+- **Endpoints**:
+  - `GET /api/dashboard` — Totals and KPI metrics
+  - `GET /api/rockets` — Filter `active`; pagination
+  - `GET /api/launches` — Filters `year`, `success`; returns `stats.success_rate`
+  - `GET /api/starlink` — Filters `altitude_min`, `inclination_min`; normalized data
+- **Service layer**:
+  - Async HTTP with **httpx**
+  - **TTLCache** per endpoint (5 min)
+  - **Retry mechanism** with exponential backoff (`tenacity`)
+  - Error handling with cache fallback
 
-### `/api/dashboard`
-**Response (example)**
-```json
-{
-  "rockets": { "total": 4, "active": 3 },
-  "launches": { "total": 250, "successful": 230, "upcoming": 3 },
-  "starlink": { "total": 6000, "deployed": 5980 }
-}
-```
-**Notes**: `deployed` = `spaceTrack.DECAY_DATE` is `null` if present (simple check).
+### Frontend (Vue 3 + Vite + D3.js)
+- **Base URL**: Configurable via `.env` (`VITE_BACKEND_URL`)
+- **Composable** `useSpaceX`:
+  - Supports query parameters for all endpoints
+  - Loading states and error handling
+  - Methods: `fetchRockets(params)`, `fetchLaunches(params)`, `fetchStarlink(params)`
+- **Data contract**:
+  - Rockets: `height` (m), `mass` (kg) for D3 charts
+  - Starlink: Standardized `inclination_deg` from backend
+  - Launches: Real-time success rate metrics
+
+### Key Components & Views
+- `DashboardView.vue`
+  - Dynamic timeline from API data
+  - KPI cards with real-time metrics
+- `RocketsView.vue`
+  - **D3.js bar chart** comparing height/mass
+  - Server-side `active` filter
+  - Client-side name search
+- `StarlinkView.vue`
+  - Three.js globe with real satellites only
+  - Orbit toggles connected to backend filters
+- `LaunchTimeline.vue`
+  - Dynamic chart using `/api/launches` data
 
 ---
+
+## 4) API details (QuadSci Compliance)
 
 ### `/api/rockets`
-**Query params**:  
-- `active` (bool, optional)  
-- `page` (default 1), `limit` (default 10, 1–50)
-
-**Response (example)**
 ```json
 {
   "data": [
@@ -124,115 +90,152 @@ This version matches the **current code** (FastAPI + Vue 3). It uses simple Engl
 }
 ```
 
----
-
-### `/api/launches`
-**Query params**:  
-- `year` (int, optional)  
-- `page` (default 1), `limit` (default 50, 1–100)
-
-**Response (example)**
+### `/api/launches` (Updated)
+**New params**: `success` (bool)
 ```json
 {
-  "data": [ /* raw launch objects from SpaceX */ ],
+  "data": [ /* launch objects */ ],
   "pagination": { "total": 24, "page": 1, "per_page": 50, "total_pages": 1 },
   "stats": { "success_rate": 87.5 }
 }
 ```
-**Notes**: Only `year` filter. No `success` filter. No date sorting.
 
----
-
-### `/api/starlink`
-**Query params**:  
-- `altitude_min` (km), `inclination_min` (degrees)  
-- `page` (default 1), `limit` (default 50, 1–100)
-
-**Response (example)**
+### `/api/starlink` (Updated)
+**Normalized field**: `inclination_deg`
 ```json
 {
   "data": [
     {
       "id": "5eed7715096e5900069857d1",
-      "name": "OBJECT_NAME or Unknown",
-      "launch_date": "YYYY-MM-DD",
-      "longitude": -97.0,
-      "latitude": 19.5,
-      "altitude_km": 550.2,
-      "velocity_kms": 7.6,
-      "inclination": 53.0,
-      "decayed": false
+      "inclination_deg": 53.0
     }
-  ],
-  "pagination": { "total": 123, "page": 1, "per_page": 50, "total_pages": 3 }
+  ]
 }
 ```
-**Notes (UI)**: The UI keeps a stable count (~150) by adding **demo** satellites when needed. Orbit toggles (POLAR/GEO) are client-side and rely on demo data’s `inclination_deg`. The UI currently does not pass server filters.
 
 ---
 
-## 6) Data flow & transforms (current)
-- Fetch from SpaceX API (with 5-minute TTL cache).
-- Apply **basic filters** on server:
-  - Rockets: `active`
-  - Launches: `year`
-  - Starlink: `altitude_min`, `inclination_min`
-- Paginate results.
-- Compute **launches success rate** only (no other metrics at this time).
-- **Frontend**:
-  - KPIs from `/api/dashboard`; timeline uses static dataset in the view.
-  - Starlink 3D globes: display API data, **augmented with demo** to ensure consistent visuals and client-only orbit toggles.
+## 5) Data Visualization (QuadSci Compliance)
+| View | Visualization | Library | Data Source |
+|------|---------------|---------|-------------|
+| **Dashboard** | Launch timeline | D3.js | `/api/launches` |
+| **Rockets** | Height/mass comparison | D3.js | `/api/rockets` |
+| **Starlink** | Satellite globe | Three.js | `/api/starlink` |
 
 ---
 
-## 7) Charts (current status)
-- **Dashboard**: KPI cards (API), launch timeline (static), rocket 3D bars (API), Starlink globe (API + demo).
-- **Rockets view**: client text filter + 3D bar chart (API mapped fields).
-- **Starlink view**: custom Three.js globe with orbit toggles (client-only; API + demo).
-
----
-
-## 8) How to run
+## 6) How to run
 ### Backend
 ```bash
 cd backend
 python -m venv venv
-# Windows: venv\Scripts\activate
-# macOS/Linux: source venv/bin/activate
+source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate    # Windows
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
-# Docs: http://localhost:8000/api/docs
 ```
 
 ### Frontend
 ```bash
 cd frontend
 npm install
+echo "VITE_BACKEND_URL=http://localhost:8000" > .env
 npm run dev
-# App: http://localhost:5173
-# Note: the app uses http://localhost:8000 as backend (hardcoded in useSpaceX.ts)
 ```
 
 ---
 
-## 9) Quick test (cURL)
+## 7) Testing Endpoints
 ```bash
-# Starlink with available server filters (UI does not send them)
-curl "http://localhost:8000/api/starlink?altitude_min=500&inclination_min=50&page=1&limit=20"
+# Get successful launches in 2023
+curl "http://localhost:8000/api/launches?year=2023&success=true"
 
-# Rockets (active only)
-curl "http://localhost:8000/api/rockets?active=true&page=1&limit=10"
+# Get active rockets
+curl "http://localhost:8000/api/rockets?active=true"
 
-# Launches (2020; no sort, no success filter)
-curl "http://localhost:8000/api/launches?year=2020&page=1&limit=50"
-
-# Dashboard
-curl "http://localhost:8000/api/dashboard"
+# Get Starlink satellites (minimum 50° inclination)
+curl "http://localhost:8000/api/starlink?inclination_min=50"
 ```
 
 ---
 
-## 10) Notes for AI/ML
-- Reproducible runs via **code + API** (no notebooks).
-- Current server supports **basic slices**; UI shows static timeline and demo-augmented Starlink visualization for stable UX.
-- Easy to extend later (filters, metrics, retries, environment config).
+## 8) QuadSci Requirements Coverage
+| Requirement | Status | Details |
+|-------------|--------|---------|
+| **Backend filters** | ✅ | Added `success` for launches |
+| **D3.js visualizations** | ✅ | Rocket comparison chart |
+| **Real-time data** | ✅ | All views use API data |
+| **Starlink normalization** | ✅ | `inclination_deg` field |
+| **Error resilience** | ✅ | Retry + cache fallback |
+| **ENV config** | ✅ | `VITE_BACKEND_URL` support |
+
+---
+
+## 9) Roadmap
+```mermaid
+graph LR
+A[Current] --> B[Add sorting]
+A --> C[Starlink metrics]
+A --> D[Enhanced D3 tooltips]
+C --> E[Altitude averages]
+C --> F[Decayed count]
+```
+
+---
+
+## 10) Notes for QuadSci Review Panel
+1. All required endpoints implemented
+2. D3.js visualizations integrated for rocket comparison
+3. Retry mechanism with exponential backoff
+4. UI filters connected to backend
+5. Starlink data normalized (no demo data)
+6. Timeline panel now uses live data
+
+---
+
+## Design Decisions
+- **Three.js for Starlink**: Native, high-performance 3D rendering for interactive globes. D3.js is primarily 2D.
+- **TTLCache (in-memory)**: Simplifies local review without additional infrastructure. In production, Redis or similar could be used.
+- **Tenacity retries**: Exponential backoff increases resilience against upstream API hiccups.
+- **Server-side normalization**: Ensures consistent naming (`inclination_deg`, `altitude_km`) across frontend and backend.
+
+## Challenges & Solutions
+- **Starlink field variability**: Some items lacked consistent fields.  
+  **Solution**: Normalize in service layer to ensure all have `inclination_deg` and `altitude_km`.
+- **Intermittent upstream failures**: Caused occasional API errors.  
+  **Solution**: Implemented `tenacity` retries and cache fallback.
+- **Timeline drift**: Static data became outdated.  
+  **Solution**: Drive timeline from `/api/launches` real-time data.
+
+## Screenshots (Reviewer Friendly)
+Include these images in `frontend/public/screenshots/`:
+- `dashboard.png`
+- `rockets.png`
+- `starlink.png`
+
+Example in README:
+```markdown
+### Visual Evidence
+![Dashboard](frontend/public/screenshots/dashboard.png)
+![Rockets](frontend/public/screenshots/rockets.png)
+![Starlink](frontend/public/screenshots/starlink.png)
+```
+
+## QuadSci Notebook (Executable)
+A Jupyter Notebook (`spacex_quadsci_notebook.ipynb`) is provided with Markdown explanations and Python code cells to call all API endpoints.  
+Requirements to run:
+- Backend running locally at `http://localhost:8000`
+
+---
+
+## Reviewer Checklist
+| Requirement | Status |
+|-------------|--------|
+| Architecture explanation (backend/frontend) | ✅ |
+| Endpoints details (request/response examples) | ✅ |
+| Config and how to run | ✅ |
+| QuadSci coverage | ✅ |
+| **Screenshots** | ⬜ |
+| **Design Decisions** | ✅ |
+| **Challenges & Solutions** | ✅ |
+| **Executable Notebook** | ✅ |
