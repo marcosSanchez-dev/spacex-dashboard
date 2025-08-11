@@ -61,8 +61,8 @@
           <div class="stat">
             <div class="sat-icon active"></div>
             <span
-              >{{ visibleSatellites }} / {{ satellites.length }} VISIBLE</span
-            >
+              >{{ visibleSatellites }} / {{ starlink.length }} VISIBLE
+            </span>
           </div>
         </div>
       </div>
@@ -77,22 +77,25 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { onMounted, onUnmounted, ref, watch, computed } from "vue";
-import { useSpaceX } from "../composables/useSpaceX";
 import { RouterLink } from "vue-router";
+import { useSpaceX } from "../composables/useSpaceX";
 
+// —— Tipado local (el backend ya normaliza altitude_km, inclination_deg)
 interface StarlinkSatellite {
   id: string;
   name: string;
   latitude: number | null;
   longitude: number | null;
   altitude_km: number | null;
-  inclination_deg: number;
+  inclination_deg: number | null;
 }
 
-const satellites = ref<StarlinkSatellite[]>([]);
+// Refs UI / estado
 const globeContainer = ref<HTMLElement | null>(null);
 const activeOrbit = ref<"all" | "polar" | "geo">("all");
-const { fetchData, isLoading, error } = useSpaceX();
+
+// ✅ Usamos el composable existente
+const { fetchStarlink, starlink, isLoading, error } = useSpaceX();
 
 // Escena Three.js
 let scene: THREE.Scene;
@@ -103,55 +106,34 @@ let earth: THREE.Mesh;
 let satelliteGroup: THREE.Group;
 const satObjects: THREE.Mesh[] = [];
 
-// Misma función de generación de satélites demo que en DashboardView.vue
-function generateDemoSatellites(count = 150): StarlinkSatellite[] {
-  const fake = [];
-  for (let i = 0; i < count; i++) {
-    const inclination = i % 3 === 0 ? 90 : i % 3 === 1 ? 0 : 53;
-    fake.push({
-      id: `demo-${i}`,
-      name: `DemoSat-${i}`,
-      latitude: 0, // No se usa
-      longitude: 0, // No se usa
-      altitude_km: 500 + Math.random() * 300, // entre 500km y 800km
-      inclination_deg: inclination,
-    });
-  }
-  return fake;
-}
-
+// Cargar SOLO datos reales (sin demo) y luego inicializar el globo
 onMounted(async () => {
-  const response = await fetchData<{ data: StarlinkSatellite[] }>(
-    "/api/starlink"
-  );
-  satellites.value = response?.data || [];
-
-  // Usar siempre los mismos satélites demo que en DashboardView
-  if (satellites.value.length === 0) {
-    satellites.value = generateDemoSatellites(150);
-  } else {
-    // Combinar datos reales con demo para mantener consistencia visual
-    const demoCount = Math.max(0, 150 - satellites.value.length);
-    satellites.value = [
-      ...satellites.value,
-      ...generateDemoSatellites(demoCount),
-    ];
+  try {
+    // Puedes pasar filtros si quieres (p.ej. { limit: 500 })
+    await fetchStarlink();
+  } finally {
+    initGlobe();
+    // Si los datos llegan después, reconstruimos satélites
+    watch(
+      () => starlink.value,
+      () => {
+        rebuildSatellites();
+      },
+      { immediate: true }
+    );
   }
-
-  initGlobe();
 });
 
-// Satélites visibles según filtro
+// Contador visible según filtro y longitud de datos reales
 const visibleSatellites = computed(() => {
-  if (activeOrbit.value === "all") return satellites.value.length;
+  const data = (starlink.value as StarlinkSatellite[]) || [];
+  if (activeOrbit.value === "all") return data.length;
 
-  return satellites.value.filter((sat) => {
-    if (activeOrbit.value === "polar") {
-      return sat.inclination_deg >= 85;
-    } else {
-      // geo
-      return sat.inclination_deg <= 5;
-    }
+  return data.filter((sat) => {
+    const inc = sat.inclination_deg ?? 53;
+    if (activeOrbit.value === "polar") return inc >= 85;
+    // "geo" → baja inclinación (visual)
+    return inc <= 5;
   }).length;
 });
 
@@ -162,26 +144,24 @@ watch(activeOrbit, () => {
 function initGlobe() {
   if (!globeContainer.value) return;
 
-  // 1. Crear escena
+  // 1) Escena
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000814);
 
-  // 2. Crear cámara - ajustada para mayor zoom inicial
+  // 2) Cámara
   camera = new THREE.PerspectiveCamera(
-    30, // Ángulo más estrecho para mayor zoom
+    30,
     globeContainer.value.clientWidth / globeContainer.value.clientHeight,
     0.1,
     100000
   );
+  camera.position.set(0, 0, 6);
 
-  // Posición inicial más cercana
-  camera.position.set(0, 0, 6); // Reducido de 4 a 1.8 para más zoom
-
-  // 3. Crear renderizador
+  // 3) Render
   renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
-    logarithmicDepthBuffer: true, // Mejor manejo de profundidad
+    logarithmicDepthBuffer: true,
   });
   renderer.setSize(
     globeContainer.value.clientWidth,
@@ -190,7 +170,7 @@ function initGlobe() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   globeContainer.value.appendChild(renderer.domElement);
 
-  // 4. Controles de órbita - ajustados para permitir más zoom
+  // 4) Controles
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
@@ -198,32 +178,31 @@ function initGlobe() {
   controls.enablePan = false;
   controls.enableZoom = true;
   controls.screenSpacePanning = false;
-
-  // Permite acercarse mucho más
-  controls.minDistance = 1.5; // Reducido de 10 a 1.5
+  controls.minDistance = 1.5;
   controls.maxDistance = 30;
 
-  // 5. Crear Tierra
+  // 5) Tierra
   createRealisticEarth();
 
-  // 6. Crear satélites
-  createSatellites();
+  // 6) Satélites (se crean al llegar los datos reales vía watch)
+  satelliteGroup = new THREE.Group();
+  scene.add(satelliteGroup);
 
-  // 7. Iluminación
+  // 7) Luz
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
   scene.add(ambientLight);
-
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
   directionalLight.position.set(5, 3, 5);
   scene.add(directionalLight);
 
-  // 8. Animación
+  // 8) Anim
   animate();
 
-  // 9. Manejar redimensionamiento
+  // 9) Resize
   window.addEventListener("resize", onWindowResize);
 }
 
+// ——— Tierra (realista con fallback) ———
 async function createRealisticEarth() {
   try {
     const textureLoader = new THREE.TextureLoader();
@@ -235,13 +214,11 @@ async function createRealisticEarth() {
       clouds: "textures/earth/clouds.jpg",
     };
 
-    // Cargar texturas
     const earthTexture = await textureLoader.loadAsync(texturePaths.color);
     const bumpMap = await textureLoader.loadAsync(texturePaths.bump);
     const specularMap = await textureLoader.loadAsync(texturePaths.specular);
     const cloudsTexture = await textureLoader.loadAsync(texturePaths.clouds);
 
-    // Material para la Tierra
     const earthMaterial = new THREE.MeshPhongMaterial({
       map: earthTexture,
       bumpMap: bumpMap,
@@ -255,7 +232,6 @@ async function createRealisticEarth() {
     earth = new THREE.Mesh(earthGeometry, earthMaterial);
     scene.add(earth);
 
-    // Material para las nubes
     const cloudsMaterial = new THREE.MeshPhongMaterial({
       map: cloudsTexture,
       transparent: true,
@@ -267,7 +243,6 @@ async function createRealisticEarth() {
     const clouds = new THREE.Mesh(cloudsGeometry, cloudsMaterial);
     scene.add(clouds);
 
-    // Crear atmósfera
     createAtmosphere();
   } catch (err) {
     console.error("Error loading Earth textures:", err);
@@ -284,7 +259,6 @@ function createAtmosphere() {
     side: THREE.BackSide,
     shininess: 0,
   });
-
   const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
   scene.add(atmosphere);
 }
@@ -295,56 +269,56 @@ function createBasicEarth() {
     color: 0x1a5c9e,
     shininess: 5,
   });
-
   earth = new THREE.Mesh(geometry, material);
   scene.add(earth);
 }
 
-function createSatellites() {
-  satelliteGroup = new THREE.Group();
-  scene.add(satelliteGroup);
+// ——— Satélites ———
+function rebuildSatellites() {
+  if (!satelliteGroup) return;
 
-  // Crear geometría de satélite
+  // limpiar anteriores
+  satObjects.forEach((m) => m.geometry.dispose());
+  satelliteGroup.clear();
+  satObjects.length = 0;
+
+  const data = (starlink.value as StarlinkSatellite[]) || [];
+  if (data.length === 0) {
+    updateSatelliteVisibility();
+    return;
+  }
+
   const geometry = new THREE.SphereGeometry(0.015, 6, 6);
 
-  satellites.value.forEach((sat, index) => {
-    let position: THREE.Vector3;
-    const isDemo = sat.id.includes("demo");
+  data.forEach((sat, index) => {
+    const inc = sat.inclination_deg ?? 53;
+    const alt = sat.altitude_km ?? 550;
 
-    if (sat.inclination_deg <= 5) {
-      // Satélites geoestacionarios
-      const orbitAngle = (index / satellites.value.length) * Math.PI * 2;
-      const altitude = sat.altitude_km || 35786;
-      const orbitRadius = 1 + altitude / 6371;
+    let position: THREE.Vector3;
+    if (inc <= 5) {
+      // “GEO-like” visual (Starlink no es GEO, es solo para filtro)
+      const orbitAngle = (index / (data.length || 1)) * Math.PI * 2;
+      const orbitRadius = 1 + alt / 6371;
       position = new THREE.Vector3(
         Math.cos(orbitAngle) * orbitRadius,
         0,
         Math.sin(orbitAngle) * orbitRadius
       );
     } else {
-      // Otros satélites
-      position = generateSatellitePosition(sat, index);
+      position = generateSatellitePosition(inc, alt, index, data.length || 1);
     }
 
-    // Material con color diferente para demos
-    const color = isDemo ? 0xff7700 : 0xffff00;
     const material = new THREE.MeshPhongMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: 0.8,
+      color: 0xffff00,
+      emissive: 0xffff00,
+      emissiveIntensity: 0.6,
       shininess: 100,
     });
 
     const satellite = new THREE.Mesh(geometry, material);
     satellite.position.copy(position);
     satellite.lookAt(new THREE.Vector3(0, 0, 0));
-
-    // Guardar datos para filtrado
-    satellite.userData = {
-      inclination: sat.inclination_deg,
-      altitude: sat.altitude_km || 550,
-      isDemo: isDemo,
-    };
+    satellite.userData = { inclination: inc, altitude: alt };
 
     satelliteGroup.add(satellite);
     satObjects.push(satellite);
@@ -354,17 +328,17 @@ function createSatellites() {
 }
 
 function generateSatellitePosition(
-  sat: StarlinkSatellite,
-  index: number
+  inclinationDeg: number,
+  altitudeKm: number,
+  index: number,
+  total: number
 ): THREE.Vector3 {
-  const inclination = sat.inclination_deg;
-  const altitude = sat.altitude_km || 550;
-  const altitudeNorm = altitude / 6371;
-  const orbitAngle = (index / satellites.value.length) * Math.PI * 2;
+  const altitudeNorm = altitudeKm / 6371;
+  const orbitAngle = (index / total) * Math.PI * 2;
 
   return new THREE.Vector3(
     Math.cos(orbitAngle) * (1 + altitudeNorm),
-    Math.sin((inclination * Math.PI) / 180) *
+    Math.sin((inclinationDeg * Math.PI) / 180) *
       Math.sin(orbitAngle) *
       (1 + altitudeNorm),
     Math.sin(orbitAngle) * (1 + altitudeNorm)
@@ -373,55 +347,28 @@ function generateSatellitePosition(
 
 function updateSatelliteVisibility() {
   satObjects.forEach((sat) => {
+    const inc: number = sat.userData.inclination ?? 53;
     let visible = false;
 
-    if (activeOrbit.value === "all") {
-      visible = true;
-    } else if (activeOrbit.value === "polar") {
-      visible = sat.userData.inclination >= 85;
-    } else if (activeOrbit.value === "geo") {
-      visible = sat.userData.inclination <= 5;
-    }
-
-    // Mantener visibles los satélites de demostración en sus categorías
-    if (sat.userData.isDemo) {
-      if (activeOrbit.value === "polar" && sat.userData.inclination >= 85) {
-        visible = true;
-      } else if (activeOrbit.value === "geo" && sat.userData.inclination <= 5) {
-        visible = true;
-      }
-    }
+    if (activeOrbit.value === "all") visible = true;
+    else if (activeOrbit.value === "polar") visible = inc >= 85;
+    else if (activeOrbit.value === "geo") visible = inc <= 5;
 
     sat.visible = visible;
   });
 }
 
+// ——— Loop y resize ———
 function animate() {
   requestAnimationFrame(animate);
-
-  // Rotar la Tierra
-  if (earth) {
-    earth.rotation.y += 0.0005;
-  }
-
-  // Rotar satélites
-  satelliteGroup.rotation.y += 0.001;
-
-  // Animación de satélites (solo demos para rendimiento)
-  satObjects.forEach((sat, index) => {
-    if (sat.userData.isDemo) {
-      const blink = Math.sin(Date.now() * 0.005 + index) * 0.5 + 0.5;
-      (sat.material as THREE.MeshPhongMaterial).emissiveIntensity = blink * 0.8;
-    }
-  });
-
+  if (earth) earth.rotation.y += 0.0005;
+  if (satelliteGroup) satelliteGroup.rotation.y += 0.001;
   controls.update();
   renderer.render(scene, camera);
 }
 
 function onWindowResize() {
   if (!globeContainer.value) return;
-
   camera.aspect =
     globeContainer.value.clientWidth / globeContainer.value.clientHeight;
   camera.updateProjectionMatrix();
@@ -433,9 +380,7 @@ function onWindowResize() {
 
 onUnmounted(() => {
   window.removeEventListener("resize", onWindowResize);
-  if (renderer) {
-    renderer.dispose();
-  }
+  if (renderer) renderer.dispose();
 });
 </script>
 

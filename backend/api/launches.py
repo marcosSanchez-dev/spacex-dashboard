@@ -7,6 +7,7 @@ router = APIRouter()
 @router.get("/launches")
 async def get_launches(
     year: int = Query(None, description="Filtrar por año de lanzamiento"),
+    success: bool = Query(None, description="Filtrar por éxito del lanzamiento"),  # ✅ Nuevo filtro
     limit: int = Query(50, ge=1, le=100, description="Límite de resultados"),
     page: int = Query(1, ge=1, description="Número de página")
 ):
@@ -18,6 +19,13 @@ async def get_launches(
             launches = [
                 l for l in launches 
                 if l.get("date_utc") and datetime.strptime(l["date_utc"], '%Y-%m-%dT%H:%M:%S.%fZ').year == year
+            ]
+        
+        # ✅ Filtrar por éxito del lanzamiento
+        if success is not None:
+            launches = [
+                l for l in launches 
+                if l.get("success") == success
             ]
         
         # Paginación
