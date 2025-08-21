@@ -135,7 +135,7 @@ const dashboardData = ref<any>(null);
 const selectedYear = ref<number | null>(null);
 const rocketFilter = ref("");
 const rocketYearFilter = ref(new Date().getFullYear());
-const activeOrbitType = ref<string | null>(null);
+const activeOrbitType = ref<"polar" | "geostationary" | null>(null);
 const resizeKey = ref(0); // Clave para forzar re-render al redimensionar
 
 // Datos dinámicos para timeline
@@ -190,6 +190,9 @@ const processLaunches = (launches: any[]) => {
 const loadLaunches = async () => {
   try {
     const response = await fetchLaunches();
+    if (!response) {
+      throw new Error("No response from server");
+    }
     const allLaunches = response.data;
     launchData.value = processLaunches(allLaunches);
   } catch (err) {
@@ -355,7 +358,11 @@ const successfulLaunches = computed(() => {
   }
 
   // Usar datos históricos si están disponibles
-  return spacexHistoricalData.years[selectedYear.value]?.successful || 0;
+  return (
+    spacexHistoricalData.years[
+      selectedYear.value as keyof typeof spacexHistoricalData.years
+    ]?.successful || 0
+  );
 });
 
 // Calcular lanzamientos fallidos basados en filtro
@@ -372,7 +379,11 @@ const failedLaunches = computed(() => {
   }
 
   // Usar datos históricos si están disponibles
-  return spacexHistoricalData.years[selectedYear.value]?.failed || 0;
+  return (
+    spacexHistoricalData.years[
+      selectedYear.value as keyof typeof spacexHistoricalData.years
+    ]?.failed || 0
+  );
 });
 
 // Calcular total de lanzamientos para el año
@@ -380,7 +391,11 @@ const totalLaunchesForYear = computed(() => {
   if (selectedYear.value === null) {
     return dashboardData.value?.launches.total || 0;
   }
-  return spacexHistoricalData.years[selectedYear.value]?.totalLaunches || 0;
+  return (
+    spacexHistoricalData.years[
+      selectedYear.value as keyof typeof spacexHistoricalData.years
+    ]?.totalLaunches || 0
+  );
 });
 
 // Calcular satélites Starlink para el año
@@ -388,7 +403,11 @@ const starlinkForYear = computed(() => {
   if (selectedYear.value === null) {
     return dashboardData.value?.starlink.deployed || 0;
   }
-  return spacexHistoricalData.years[selectedYear.value]?.starlink || 0;
+  return (
+    spacexHistoricalData.years[
+      selectedYear.value as keyof typeof spacexHistoricalData.years
+    ]?.starlink || 0
+  );
 });
 
 // Calcular cohetes activos para el año
@@ -396,7 +415,11 @@ const activeRocketsForYear = computed(() => {
   if (selectedYear.value === null) {
     return rockets.value?.filter((r) => r.active).length || 0;
   }
-  return spacexHistoricalData.years[selectedYear.value]?.activeRockets || 0;
+  return (
+    spacexHistoricalData.years[
+      selectedYear.value as keyof typeof spacexHistoricalData.years
+    ]?.activeRockets || 0
+  );
 });
 
 // Calcular tasa de éxito para el año

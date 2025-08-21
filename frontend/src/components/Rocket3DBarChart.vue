@@ -57,7 +57,7 @@ onMounted(() => {
   animate();
 
   // Observador de redimensionamiento con debounce
-  resizeObserver = new ResizeObserver((entries) => {
+  resizeObserver = new ResizeObserver(() => {
     if (resizeTimeout) clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
       handleResize();
